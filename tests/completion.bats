@@ -64,6 +64,7 @@ setup() {
 	[ "$status" -eq 0 ]
 	[[ "$output" == *"clean"* ]]
 	[[ "$output" == *"purge"* ]]
+	[[ "$output" == *"analyze"* ]]
 	[[ "$output" == *"completion"* ]]
 	[[ "$output" == *"update"* ]]
 	[[ "$output" == *"remove"* ]]
