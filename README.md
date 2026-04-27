@@ -1,19 +1,13 @@
 <div align="center">
-  <h1>Mole</h1>
-  <p><em>Deep clean and optimize your Mac.</em></p>
+  <h1>Anteater</h1>
+  <p><em>Deep clean your *nix system, based on <a href="https://github.com/tw93/mole">Mole</a> from <a href="https://github.com/tw93">tw93</a>.</em></p>
 </div>
 
 <p align="center">
-  <a href="https://github.com/tw93/mole/stargazers"><img src="https://img.shields.io/github/stars/tw93/mole?style=flat-square" alt="Stars"></a>
-  <a href="https://github.com/tw93/mole/releases"><img src="https://img.shields.io/github/v/tag/tw93/mole?label=version&style=flat-square" alt="Version"></a>
+  <a href="https://github.com/cloudwithax/anteater/stargazers"><img src="https://img.shields.io/github/stars/cloudwithax/anteater?style=flat-square" alt="Stars"></a>
+  <a href="https://github.com/cloudwithax/anteater/releases"><img src="https://img.shields.io/github/v/tag/cloudwithax/anteater?label=version&style=flat-square" alt="Version"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square" alt="License"></a>
-  <a href="https://github.com/tw93/mole/commits"><img src="https://img.shields.io/github/commit-activity/m/tw93/mole?style=flat-square" alt="Commits"></a>
-  <a href="https://twitter.com/HiTw93"><img src="https://img.shields.io/badge/follow-Tw93-red?style=flat-square&logo=Twitter" alt="Twitter"></a>
-  <a href="https://t.me/+GclQS9ZnxyI2ODQ1"><img src="https://img.shields.io/badge/chat-Telegram-blueviolet?style=flat-square&logo=Telegram" alt="Telegram"></a>
-</p>
-
-<p align="center">
-  <img src="https://gw.alipayobjects.com/zos/k/ro/ZzF8e8.png" alt="Mole - 95.50GB freed" width="1000" />
+  <a href="https://github.com/cloudwithax/anteater/commits"><img src="https://img.shields.io/github/commit-activity/m/cloudwithax/anteater?style=flat-square" alt="Commits"></a>
 </p>
 
 ## Features
@@ -26,80 +20,74 @@
 
 ## Quick Start
 
-**Install via Homebrew**
+**Install via script**
 
 ```bash
-brew install mole
+# Optional args: -s latest for main branch code, -s 1.0.0 for specific version
+curl -fsSL https://raw.githubusercontent.com/cloudwithax/anteater/main/install.sh | bash
 ```
 
-**Or via script**
-
-```bash
-# Optional args: -s latest for main branch code, -s 1.17.0 for specific version
-curl -fsSL https://raw.githubusercontent.com/tw93/mole/main/install.sh | bash
-```
-
-> Note: Mole is built for macOS. An experimental Windows version is available in the [windows branch](https://github.com/tw93/Mole/tree/windows) for early adopters.
+> Note: Anteater targets Linux and OpenBSD. macOS users should use the upstream [Mole](https://github.com/tw93/mole) project.
 
 **Run**
 
 ```bash
-mo                           # Interactive menu
-mo clean                     # Deep cleanup + already-uninstalled app leftovers
-mo uninstall                 # Remove installed apps + their leftovers
-mo optimize                  # Refresh caches & services
-mo analyze                   # Visual disk explorer (or 'mo analyse')
-mo status                    # Live system health dashboard
-mo purge                     # Clean project build artifacts
-mo installer                 # Find and remove installer files
+aa                           # Interactive menu
+aa clean                     # Deep cleanup + already-uninstalled app leftovers
+aa uninstall                 # Remove installed apps + their leftovers
+aa optimize                  # Refresh caches & services
+aa analyze                   # Visual disk explorer (or 'aa analyse')
+aa status                    # Live system health dashboard
+aa purge                     # Clean project build artifacts
+aa installer                 # Find and remove installer files
 
-mo touchid                   # Configure Touch ID for sudo
-mo completion                # Set up shell tab completion
-mo update                    # Update Mole
-mo update --nightly          # Update to latest unreleased main build, script install only
-mo remove                    # Remove Mole from system
-mo --help                    # Show help
-mo --version                 # Show installed version
+aa touchid                   # Configure Touch ID for sudo
+aa completion                # Set up shell tab completion
+aa update                    # Update Anteater
+aa update --nightly          # Update to latest unreleased main build, script install only
+aa remove                    # Remove Anteater from system
+aa --help                    # Show help
+aa --version                 # Show installed version
 ```
 
 **Preview safely**
 
 ```bash
-mo clean --dry-run
-mo uninstall --dry-run
-mo purge --dry-run
+aa clean --dry-run
+aa uninstall --dry-run
+aa purge --dry-run
 
 # Also works with: optimize, installer, remove, completion, touchid enable
-mo clean --dry-run --debug   # Preview + detailed logs
-mo optimize --whitelist      # Manage protected optimization rules
-mo clean --whitelist         # Manage protected caches
-mo purge --paths             # Configure project scan directories
-mo analyze /Volumes          # Analyze external drives only
+aa clean --dry-run --debug   # Preview + detailed logs
+aa optimize --whitelist      # Manage protected optimization rules
+aa clean --whitelist         # Manage protected caches
+aa purge --paths             # Configure project scan directories
+aa analyze /Volumes          # Analyze external drives only
 ```
 
 ## Security & Safety Design
 
-Mole is a local system maintenance tool, and some commands can perform destructive local operations.
+Anteater is a local system maintenance tool, and some commands can perform destructive local operations.
 
-Mole uses safety-first defaults: path validation, protected-directory rules, conservative cleanup boundaries, and explicit confirmation for higher-risk actions. When risk or uncertainty is high, Mole skips, refuses, or requires stronger confirmation rather than broadening deletion scope.
+Anteater uses safety-first defaults: path validation, protected-directory rules, conservative cleanup boundaries, and explicit confirmation for higher-risk actions. When risk or uncertainty is high, Anteater skips, refuses, or requires stronger confirmation rather than broadening deletion scope.
 
-`mo analyze` is safer for ad hoc cleanup because it moves files to Trash through Finder instead of deleting them directly.
+`aa analyze` is safer for ad hoc cleanup because it moves files to Trash through Finder instead of deleting them directly.
 
 Review [SECURITY.md](SECURITY.md) and [SECURITY_AUDIT.md](SECURITY_AUDIT.md) for reporting guidance, safety boundaries, and current limitations.
 
 ## Tips
 
-- Video tutorial: Watch the [Mole tutorial video](https://www.youtube.com/watch?v=UEe9-w4CcQ0), thanks to PAPAYA 電腦教室.
-- Safety and logs: `clean`, `uninstall`, `purge`, `installer`, and `remove` are destructive. Review with `--dry-run` first, and add `--debug` when needed. File operations are logged to `~/Library/Logs/mole/operations.log`. Disable with `MO_NO_OPLOG=1`. Review [SECURITY.md](SECURITY.md) and [SECURITY_AUDIT.md](SECURITY_AUDIT.md).
-- App leftovers: use `mo clean` when the app is already uninstalled, and `mo uninstall` when the app is still installed.
-- Navigation: Mole supports arrow keys and Vim bindings `h/j/k/l`.
+- Video tutorial: Watch the [Anteater tutorial video](https://www.youtube.com/watch?v=UEe9-w4CcQ0), thanks to PAPAYA 電腦教室.
+- Safety and logs: `clean`, `uninstall`, `purge`, `installer`, and `remove` are destructive. Review with `--dry-run` first, and add `--debug` when needed. File operations are logged to `~/Library/Logs/anteater/operations.log`. Disable with `AA_NO_OPLOG=1`. Review [SECURITY.md](SECURITY.md) and [SECURITY_AUDIT.md](SECURITY_AUDIT.md).
+- App leftovers: use `aa clean` when the app is already uninstalled, and `aa uninstall` when the app is still installed.
+- Navigation: Anteater supports arrow keys and Vim bindings `h/j/k/l`.
 
 ## Features in Detail
 
 ### Deep System Cleanup
 
 ```bash
-$ mo clean
+$ aa clean
 
 Scanning cache directories...
 
@@ -115,12 +103,12 @@ Space freed: 95.5GB | Free space now: 223.5GB
 ====================================================================
 ```
 
-Note: In `mo clean` -> Developer tools, Mole removes unused CoreSimulator `Volumes/Cryptex` entries and skips `IN_USE` items.
+Note: In `aa clean` -> Developer tools, Anteater removes unused CoreSimulator `Volumes/Cryptex` entries and skips `IN_USE` items.
 
 ### Smart App Uninstaller
 
 ```bash
-$ mo uninstall
+$ aa uninstall
 
 Select Apps to Remove
 ═══════════════════════════
@@ -136,7 +124,7 @@ Uninstalling: Photoshop 2024
     - Logs, WebKit storage, Cookies
     - Extensions, Plugins, Launch daemons
 
-Note: On macOS 15 and later, Local Network permission entries can outlive app removal. Mole warns when an uninstalled app declares Local Network usage, but it does not auto-reset `/Volumes/Data/Library/Preferences/com.apple.networkextension*.plist` because that reset is global and requires Recovery mode.
+Note: On macOS 15 and later, Local Network permission entries can outlive app removal. Anteater warns when an uninstalled app declares Local Network usage, but it does not auto-reset `/Volumes/Data/Library/Preferences/com.apple.networkextension*.plist` because that reset is global and requires Recovery mode.
 
 ====================================================================
 Space freed: 12.8GB
@@ -146,7 +134,7 @@ Space freed: 12.8GB
 ### System Optimization
 
 ```bash
-$ mo optimize
+$ aa optimize
 
 System: 5/32 GB RAM | 333/460 GB Disk (72%) | Uptime 6d
 
@@ -161,15 +149,15 @@ System: 5/32 GB RAM | 333/460 GB Disk (72%) | Uptime 6d
 System optimization completed
 ====================================================================
 
-Use `mo optimize --whitelist` to exclude specific optimizations.
+Use `aa optimize --whitelist` to exclude specific optimizations.
 ```
 
 ### Disk Space Analyzer
 
-> Note: By default, Mole skips external drives under `/Volumes` for faster startup. To inspect them, run `mo analyze /Volumes` or a specific mount path.
+> Note: By default, Anteater skips external drives under `/Volumes` for faster startup. To inspect them, run `aa analyze /Volumes` or a specific mount path.
 
 ```bash
-$ mo analyze
+$ aa analyze
 
 Analyze Disk  ~/Documents  |  Total: 156.8GB
 
@@ -187,9 +175,9 @@ Analyze Disk  ~/Documents  |  Total: 156.8GB
 Real-time dashboard with health score, hardware info, and performance metrics.
 
 ```bash
-$ mo status
+$ aa status
 
-Mole Status  Health ● 92  MacBook Pro · M4 Pro · 32GB · macOS 14.5
+Anteater Status  Health ● 92  MacBook Pro · M4 Pro · 32GB · macOS 14.5
 
 ⚙ CPU                                    ▦ Memory
 Total   ████████████░░░░░░░  45.2%       Used    ███████████░░░░░░░  58.4%
@@ -211,19 +199,19 @@ Proxy   HTTP · 192.168.1.100             Terminal   ▮▯▯▯▯  12.5%
 
 Health score is based on CPU, memory, disk, temperature, and I/O load, with color-coded ranges.
 
-Shortcuts: In `mo status`, press `k` to toggle the cat and save the preference, and `q` to quit.
+Shortcuts: In `aa status`, press `k` to toggle the cat and save the preference, and `q` to quit.
 
-When enabled, `mo status` shows a read-only alert banner for processes that stay above the configured CPU threshold for a sustained window. Use `--proc-cpu-threshold`, `--proc-cpu-window`, or `--proc-cpu-alerts=false` to tune or disable it.
+When enabled, `aa status` shows a read-only alert banner for processes that stay above the configured CPU threshold for a sustained window. Use `--proc-cpu-threshold`, `--proc-cpu-window`, or `--proc-cpu-alerts=false` to tune or disable it.
 
 #### Machine-Readable Output
 
-Both `mo analyze` and `mo status` support a `--json` flag for scripting and automation.
+Both `aa analyze` and `aa status` support a `--json` flag for scripting and automation.
 
-`mo status` also auto-detects when its output is piped (not a terminal) and switches to JSON automatically.
+`aa status` also auto-detects when its output is piped (not a terminal) and switches to JSON automatically.
 
 ```bash
 # Disk analysis as JSON
-$ mo analyze --json ~/Documents
+$ aa analyze --json ~/Documents
 {
   "path": "/Users/you/Documents",
   "overview": false,
@@ -239,7 +227,7 @@ $ mo analyze --json ~/Documents
 }
 
 # System status as JSON
-$ mo status --json
+$ aa status --json
 {
   "host": "MacBook-Pro",
   "health_score": 92,
@@ -251,7 +239,7 @@ $ mo status --json
 }
 
 # Auto-detected JSON when piped
-$ mo status | jq '.health_score'
+$ aa status | jq '.health_score'
 92
 ```
 
@@ -260,7 +248,7 @@ $ mo status | jq '.health_score'
 Clean old build artifacts such as `node_modules`, `target`, `.build`, `build`, and `dist` to free up disk space.
 
 ```bash
-mo purge
+aa purge
 
 Select Categories to Clean - 18.5GB (8 selected)
 
@@ -282,7 +270,7 @@ Select Categories to Clean - 18.5GB (8 selected)
 <details>
 <summary><strong>Custom Scan Paths</strong></summary>
 
-Run `mo purge --paths` to configure scan directories, or edit `~/.config/mole/purge_paths` directly:
+Run `aa purge --paths` to configure scan directories, or edit `~/.config/anteater/purge_paths` directly:
 
 ```shell
 ~/Documents/MyProjects
@@ -290,7 +278,7 @@ Run `mo purge --paths` to configure scan directories, or edit `~/.config/mole/pu
 ~/Work/ClientB
 ```
 
-When custom paths are configured, Mole scans only those directories. Otherwise, it uses defaults like `~/Projects`, `~/GitHub`, and `~/dev`.
+When custom paths are configured, Anteater scans only those directories. Otherwise, it uses defaults like `~/Projects`, `~/GitHub`, and `~/dev`.
 
 </details>
 
@@ -299,7 +287,7 @@ When custom paths are configured, Mole scans only those directories. Otherwise, 
 Find and remove large installer files across Downloads, Desktop, Homebrew caches, iCloud, and Mail. Each file is labeled by source.
 
 ```bash
-mo installer
+aa installer
 
 Select Installers to Remove - 3.8GB (5 selected)
 
@@ -313,13 +301,13 @@ Select Installers to Remove - 3.8GB (5 selected)
 
 ## Quick Launchers
 
-Launch Mole commands from Raycast or Alfred:
+Launch Anteater commands from Raycast or Alfred:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/tw93/Mole/main/scripts/setup-quick-launchers.sh | bash
+curl -fsSL https://raw.githubusercontent.com/cloudwithax/anteater/main/scripts/setup-quick-launchers.sh | bash
 ```
 
-Adds 5 commands: `Mole Clean`, `Mole Uninstall`, `Mole Optimize`, `Mole Analyze`, `Mole Status`.
+Adds 5 commands: `Anteater Clean`, `Anteater Uninstall`, `Anteater Optimize`, `Anteater Analyze`, `Anteater Status`.
 
 ### Raycast Setup
 
@@ -330,35 +318,35 @@ After running the script, complete these steps in Raycast:
 3. Click **"Add Script Directory"** (or **"+"**)
 4. Add path: `~/Library/Application Support/Raycast/script-commands`
 5. Search in Raycast for: **"Reload Script Directories"** and run it
-6. Done! Search for `Mole Clean` or `clean`, `Mole Optimize`, or `Mole Status` to use the commands
+6. Done! Search for `Anteater Clean` or `clean`, `Anteater Optimize`, or `Anteater Status` to use the commands
 
 > **Note**: The script creates the commands, but Raycast still requires a one-time manual script directory setup.
 
 ### Terminal Detection
 
-Mole auto-detects your terminal app. iTerm2 has known compatibility issues. We highly recommend [Kaku](https://github.com/tw93/Kaku). Other good options are Alacritty, kitty, WezTerm, Ghostty, and Warp. To override, set `MO_LAUNCHER_APP=<name>`.
+Anteater auto-detects your terminal app. iTerm2 has known compatibility issues. We highly recommend [Kaku](https://github.com/tw93/Kaku). Other good options are Alacritty, kitty, WezTerm, Ghostty, and Warp. To override, set `AA_LAUNCHER_APP=<name>`.
 
 ## Community Love
 
-Thanks to everyone who helped build Mole. Go follow them. ❤️
+Thanks to everyone who helped build Anteater. Go follow them. ❤️
 
-<a href="https://github.com/tw93/Mole/graphs/contributors">
+<a href="https://github.com/cloudwithax/anteater/graphs/contributors">
   <img src="./CONTRIBUTORS.svg?v=2" width="1000" />
 </a>
 
 <br/><br/>
-Real feedback from users who shared Mole on X.
+Real feedback from users who shared Anteater on X.
 
-<img src="https://gw.alipayobjects.com/zos/k/dl/lovemole.jpeg" alt="Community feedback on Mole" width="1000" />
+<img src="https://gw.alipayobjects.com/zos/k/dl/loveanteater.jpeg" alt="Community feedback on Anteater" width="1000" />
 
 ## Support
 
-- If Mole helped you, [share it](https://twitter.com/intent/tweet?url=https://github.com/tw93/Mole&text=Mole%20-%20Deep%20clean%20and%20optimize%20your%20Mac.) with friends or give it a star.
+- If Anteater helped you, [share it](https://twitter.com/intent/tweet?url=https://github.com/cloudwithax/anteater&text=Anteater%20-%20Deep%20clean%20and%20optimize%20your%20Mac.) with friends or give it a star.
 - Got ideas or bugs? Open an issue or PR, feel free to contribute your best AI model.
-- I have two cats, TangYuan and Coke. If you think Mole delights your life, you can feed them <a href="https://miaoyan.app/cats.html?name=Mole" target="_blank">canned food 🥩</a>.
+- I have two cats, TangYuan and Coke. If you think Anteater delights your life, you can feed them <a href="https://miaoyan.app/cats.html?name=Anteater" target="_blank">canned food 🥩</a>.
 
-<a href="https://miaoyan.app/cats.html?name=Mole"><img src="https://cdn.jsdelivr.net/gh/tw93/MiaoYan@main/assets/sponsors.svg" width="1000" loading="lazy" /></a>
+<a href="https://miaoyan.app/cats.html?name=Anteater"><img src="https://cdn.jsdelivr.net/gh/tw93/MiaoYan@main/assets/sponsors.svg" width="1000" loading="lazy" /></a>
 
 ## License
 
-MIT License. Feel free to use Mole and contribute.
+MIT License. Feel free to use Anteater and contribute.

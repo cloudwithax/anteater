@@ -1,15 +1,15 @@
 #!/bin/bash
-# Mole - pkgutil receipt helpers.
+# Anteater - pkgutil receipt helpers.
 # Finds package-installed app bundles outside the standard app locations.
 
 set -euo pipefail
 
-if [[ -n "${MOLE_PKG_RECEIPTS_LOADED:-}" ]]; then
+if [[ -n "${ANTEATER_PKG_RECEIPTS_LOADED:-}" ]]; then
     return 0
 fi
-readonly MOLE_PKG_RECEIPTS_LOADED=1
+readonly ANTEATER_PKG_RECEIPTS_LOADED=1
 
-_mole_pkg_receipt_app_root() {
+_anteater_pkg_receipt_app_root() {
     local rel_path="${1#/}"
     [[ -n "$rel_path" ]] || return 1
 
@@ -35,7 +35,7 @@ pkg_receipt_nonstandard_app_paths() {
 
     local pkgs_output
     if declare -f run_with_timeout > /dev/null 2>&1; then
-        pkgs_output=$(run_with_timeout "${MOLE_PKG_RECEIPT_LIST_TIMEOUT:-3}" pkgutil --pkgs 2> /dev/null || true)
+        pkgs_output=$(run_with_timeout "${ANTEATER_PKG_RECEIPT_LIST_TIMEOUT:-3}" pkgutil --pkgs 2> /dev/null || true)
     else
         pkgs_output=$(pkgutil --pkgs 2> /dev/null || true)
     fi
@@ -43,7 +43,7 @@ pkg_receipt_nonstandard_app_paths() {
 
     local -a seen_apps=()
     local scan_start=$SECONDS
-    local scan_timeout="${MOLE_PKG_RECEIPT_SCAN_TIMEOUT:-8}"
+    local scan_timeout="${ANTEATER_PKG_RECEIPT_SCAN_TIMEOUT:-8}"
     local pkg_id
     while IFS= read -r pkg_id; do
         if [[ "$scan_timeout" =~ ^[0-9]+$ && $scan_timeout -gt 0 && $((SECONDS - scan_start)) -ge $scan_timeout ]]; then

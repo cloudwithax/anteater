@@ -3,7 +3,7 @@
 setup() {
     PROJECT_ROOT="$(cd "${BATS_TEST_DIRNAME}/.." && pwd)"
     export PROJECT_ROOT
-    export MO_DEBUG=0
+    export AA_DEBUG=0
 }
 
 @test "run_with_timeout: command completes before timeout" {
@@ -147,21 +147,21 @@ setup() {
     [[ "$result" == "hello world" ]]
 }
 
-@test "run_with_timeout: debug logging when MO_DEBUG=1" {
+@test "run_with_timeout: debug logging when AA_DEBUG=1" {
     output=$(bash -c "
         set -euo pipefail
-        export MO_DEBUG=1
+        export AA_DEBUG=1
         source '$PROJECT_ROOT/lib/core/timeout.sh'
         run_with_timeout 5 echo 'test' 2>&1
     ")
     [[ "$output" =~ TIMEOUT ]]
 }
 
-@test "run_with_timeout: no debug logging when MO_DEBUG=0" {
+@test "run_with_timeout: no debug logging when AA_DEBUG=0" {
     output=$(bash -c "
         set -euo pipefail
-        export MO_DEBUG=0
-        unset MO_TIMEOUT_INITIALIZED
+        export AA_DEBUG=0
+        unset AA_TIMEOUT_INITIALIZED
         source '$PROJECT_ROOT/lib/core/timeout.sh'
         run_with_timeout 5 echo 'test'
     " 2>/dev/null)
@@ -178,11 +178,11 @@ setup() {
     [[ "$result" == "loaded" ]]
 }
 
-@test "timeout.sh: sets MOLE_TIMEOUT_LOADED flag" {
+@test "timeout.sh: sets ANTEATER_TIMEOUT_LOADED flag" {
     result=$(bash -c "
         set -euo pipefail
         source '$PROJECT_ROOT/lib/core/timeout.sh'
-        echo \"\$MOLE_TIMEOUT_LOADED\"
+        echo \"\$ANTEATER_TIMEOUT_LOADED\"
     ")
     [[ "$result" == "1" ]]
 }
@@ -191,8 +191,8 @@ setup() {
     result=$(bash -c "
         set -euo pipefail
         source '$PROJECT_ROOT/lib/core/timeout.sh'
-        MO_TIMEOUT_BIN=''
-        MO_TIMEOUT_PERL_BIN=''
+        AA_TIMEOUT_BIN=''
+        AA_TIMEOUT_PERL_BIN=''
         trap 'echo caller-trap' INT
         run_with_timeout 2 true
         trap -p INT

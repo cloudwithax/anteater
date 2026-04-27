@@ -1,5 +1,5 @@
 #!/bin/bash
-# Mole - Main CLI entrypoint.
+# Anteater - Main CLI entrypoint.
 # Routes subcommands and interactive menu.
 # Handles update/remove flows.
 
@@ -13,8 +13,8 @@ source "$SCRIPT_DIR/lib/core/commands.sh"
 trap cleanup_temp_files EXIT INT TERM
 
 # Version and update helpers
-VERSION="1.36.2"
-MOLE_TAGLINE="Deep clean and optimize your Mac."
+VERSION="1.0.0"
+ANTEATER_TAGLINE="Deep clean your *nix system, based on Mole from tw93"
 
 is_touchid_configured() {
     grep -q "pam_tid.so" /etc/pam.d/sudo /etc/pam.d/sudo_local 2> /dev/null
@@ -22,14 +22,14 @@ is_touchid_configured() {
 
 get_latest_version() {
     curl -fsSL --connect-timeout 2 --max-time 3 -H "Cache-Control: no-cache" \
-        "https://raw.githubusercontent.com/tw93/mole/main/mole" 2> /dev/null |
+        "https://raw.githubusercontent.com/cloudwithax/anteater/main/anteater" 2> /dev/null |
         grep '^VERSION=' | head -1 | sed 's/VERSION="\(.*\)"/\1/'
 }
 
 get_latest_version_from_github() {
     local version
     version=$(curl -fsSL --connect-timeout 2 --max-time 3 \
-        "https://api.github.com/repos/tw93/mole/releases/latest" 2> /dev/null |
+        "https://api.github.com/repos/cloudwithax/anteater/releases/latest" 2> /dev/null |
         grep '"tag_name"' | head -1 | sed -E 's/.*"([^"]+)".*/\1/')
     version="${version#v}"
     version="${version#V}"
@@ -42,7 +42,7 @@ get_homebrew_latest_version() {
     local line candidate=""
 
     # Prefer local tap outdated info to avoid notifying before formula is available.
-    line=$(HOMEBREW_NO_AUTO_UPDATE=1 brew outdated --formula --verbose mole 2> /dev/null | head -1 || true)
+    line=$(HOMEBREW_NO_AUTO_UPDATE=1 brew outdated --formula --verbose anteater 2> /dev/null | head -1 || true)
     if [[ "$line" == *"< "* ]]; then
         candidate="${line##*< }"
         candidate="${candidate%% *}"
@@ -50,7 +50,7 @@ get_homebrew_latest_version() {
 
     # Fallback for environments where outdated output is unavailable.
     if [[ -z "$candidate" ]]; then
-        line=$(HOMEBREW_NO_AUTO_UPDATE=1 brew info mole 2> /dev/null | awk 'NR==1 { print; exit }' || true)
+        line=$(HOMEBREW_NO_AUTO_UPDATE=1 brew info anteater 2> /dev/null | awk 'NR==1 { print; exit }' || true)
         line="${line#==> }"
         line="${line#*: }"
         if [[ "$line" == stable* ]]; then
@@ -63,31 +63,31 @@ get_homebrew_latest_version() {
 # Install detection (Homebrew vs manual).
 # Uses variable capture + string matching to avoid SIGPIPE under pipefail.
 is_homebrew_install() {
-    local mole_path link_target has_brew=false
-    mole_path=$(command -v mole 2> /dev/null) || return 1
+    local anteater_path link_target has_brew=false
+    anteater_path=$(command -v anteater 2> /dev/null) || return 1
 
     if command -v brew > /dev/null 2>&1; then
         has_brew=true
     fi
 
-    if [[ -L "$mole_path" ]]; then
-        link_target=$(readlink "$mole_path" 2> /dev/null) || true
-        if [[ "$link_target" == *"Cellar/mole"* ]]; then
+    if [[ -L "$anteater_path" ]]; then
+        link_target=$(readlink "$anteater_path" 2> /dev/null) || true
+        if [[ "$link_target" == *"Cellar/anteater"* ]]; then
             if $has_brew; then
-                brew list mole > /dev/null 2>&1 && return 0
+                brew list anteater > /dev/null 2>&1 && return 0
             fi
             return 1
         fi
     fi
 
-    if [[ -f "$mole_path" ]]; then
+    if [[ -f "$anteater_path" ]]; then
         # Paths are quoted so Homebrew bottle relocation cannot break parsing
         # when the prefix contains spaces (e.g. Applite under "Application Support").
-        case "$mole_path" in
-            "/opt/homebrew/bin/mole" | "/usr/local/bin/mole")
-                if [[ -d "/opt/homebrew/Cellar/mole" ]] || [[ -d "/usr/local/Cellar/mole" ]]; then
+        case "$anteater_path" in
+            "/opt/homebrew/bin/anteater" | "/usr/local/bin/anteater")
+                if [[ -d "/opt/homebrew/Cellar/anteater" ]] || [[ -d "/usr/local/Cellar/anteater" ]]; then
                     if $has_brew; then
-                        brew list mole > /dev/null 2>&1 && return 0
+                        brew list anteater > /dev/null 2>&1 && return 0
                     else
                         return 0 # Cellar exists, probably Homebrew install
                     fi
@@ -99,8 +99,8 @@ is_homebrew_install() {
     if $has_brew; then
         local brew_prefix
         brew_prefix=$(brew --prefix 2> /dev/null)
-        if [[ -n "$brew_prefix" && "$mole_path" == "$brew_prefix/bin/mole" && -d "$brew_prefix/Cellar/mole" ]]; then
-            brew list mole > /dev/null 2>&1 && return 0
+        if [[ -n "$brew_prefix" && "$anteater_path" == "$brew_prefix/bin/anteater" && -d "$brew_prefix/Cellar/anteater" ]]; then
+            brew list anteater > /dev/null 2>&1 && return 0
         fi
     fi
 
@@ -109,7 +109,7 @@ is_homebrew_install() {
 
 get_install_channel() {
     # Try user config dir first (matches install.sh behavior), fallback to SCRIPT_DIR
-    local channel_file="${MOLE_CONFIG_DIR:-$HOME/.config/mole}/install_channel"
+    local channel_file="${ANTEATER_CONFIG_DIR:-$HOME/.config/anteater}/install_channel"
     if [[ ! -f "$channel_file" ]]; then
         channel_file="$SCRIPT_DIR/install_channel"
     fi
@@ -125,7 +125,7 @@ get_install_channel() {
 
 get_install_commit() {
     # Try user config dir first (matches install.sh behavior), fallback to SCRIPT_DIR
-    local channel_file="${MOLE_CONFIG_DIR:-$HOME/.config/mole}/install_channel"
+    local channel_file="${ANTEATER_CONFIG_DIR:-$HOME/.config/anteater}/install_channel"
     if [[ ! -f "$channel_file" ]]; then
         channel_file="$SCRIPT_DIR/install_channel"
     fi
@@ -137,14 +137,14 @@ get_install_commit() {
 get_latest_commit_from_github() {
     local sha
     sha=$(curl -fsSL --connect-timeout 2 --max-time 3 \
-        "https://api.github.com/repos/tw93/mole/commits/main" 2> /dev/null |
+        "https://api.github.com/repos/cloudwithax/anteater/commits/main" 2> /dev/null |
         grep '"sha"[[:space:]]*:[[:space:]]*"[0-9a-f]\{40\}"' | head -1 | sed -E 's/.*"sha"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/')
     echo "$sha"
 }
 
 # Background update notice
 check_for_updates() {
-    local msg_cache="$HOME/.cache/mole/update_message"
+    local msg_cache="$HOME/.cache/anteater/update_message"
     ensure_user_dir "$(dirname "$msg_cache")"
     ensure_user_file "$msg_cache"
 
@@ -194,7 +194,7 @@ check_for_updates() {
 }
 
 show_update_notification() {
-    local msg_cache="$HOME/.cache/mole/update_message"
+    local msg_cache="$HOME/.cache/anteater/update_message"
     if [[ -f "$msg_cache" && -s "$msg_cache" ]]; then
         cat "$msg_cache"
         echo
@@ -207,8 +207,8 @@ show_brand_banner() {
 ${GREEN} __  __       _      ${NC}
 ${GREEN}|  \/  | ___ | | ___ ${NC}
 ${GREEN}| |\/| |/ _ \| |/ _ \\${NC}
-${GREEN}| |  | | (_) | |  __/${NC}  ${BLUE}https://github.com/tw93/mole${NC}
-${GREEN}|_|  |_|\___/|_|\___|${NC}  ${GREEN}${MOLE_TAGLINE}${NC}
+${GREEN}| |  | | (_) | |  __/${NC}  ${BLUE}https://github.com/cloudwithax/anteater${NC}
+${GREEN}|_|  |_|\___/|_|\___|${NC}  ${GREEN}${ANTEATER_TAGLINE}${NC}
 
 EOF
 }
@@ -246,7 +246,7 @@ show_version() {
     local channel
     channel=$(get_install_channel)
 
-    printf '\nMole version %s\n' "$VERSION"
+    printf '\nAnteater version %s\n' "$VERSION"
     if [[ "$channel" == "nightly" ]]; then
         local commit
         commit=$(get_install_commit)
@@ -269,31 +269,31 @@ show_help() {
     show_brand_banner
     echo
     printf "%s%s%s\n" "$BLUE" "COMMANDS" "$NC"
-    printf "  %s%-28s%s %s\n" "$GREEN" "mo" "$NC" "Main menu"
-    for entry in "${MOLE_COMMANDS[@]}"; do
+    printf "  %s%-28s%s %s\n" "$GREEN" "aa" "$NC" "Main menu"
+    for entry in "${ANTEATER_COMMANDS[@]}"; do
         local name="${entry%%:*}"
         local desc="${entry#*:}"
-        local display="mo $name"
-        [[ "$name" == "help" ]] && display="mo --help"
-        [[ "$name" == "version" ]] && display="mo --version"
+        local display="aa $name"
+        [[ "$name" == "help" ]] && display="aa --help"
+        [[ "$name" == "version" ]] && display="aa --version"
         printf "  %s%-28s%s %s\n" "$GREEN" "$display" "$NC" "$desc"
     done
     echo
-    printf "  %s%-28s%s %s\n" "$GREEN" "mo clean --dry-run" "$NC" "Preview cleanup"
-    printf "  %s%-28s%s %s\n" "$GREEN" "mo clean --whitelist" "$NC" "Manage protected caches"
+    printf "  %s%-28s%s %s\n" "$GREEN" "aa clean --dry-run" "$NC" "Preview cleanup"
+    printf "  %s%-28s%s %s\n" "$GREEN" "aa clean --whitelist" "$NC" "Manage protected caches"
 
-    printf "  %s%-28s%s %s\n" "$GREEN" "mo optimize --dry-run" "$NC" "Preview optimization"
-    printf "  %s%-28s%s %s\n" "$GREEN" "mo optimize --whitelist" "$NC" "Manage protected items"
-    printf "  %s%-28s%s %s\n" "$GREEN" "mo uninstall --dry-run" "$NC" "Preview app uninstall"
-    printf "  %s%-28s%s %s\n" "$GREEN" "mo purge --dry-run" "$NC" "Preview project purge"
-    printf "  %s%-28s%s %s\n" "$GREEN" "mo installer --dry-run" "$NC" "Preview installer cleanup"
-    printf "  %s%-28s%s %s\n" "$GREEN" "mo touchid enable --dry-run" "$NC" "Preview Touch ID setup"
-    printf "  %s%-28s%s %s\n" "$GREEN" "mo completion --dry-run" "$NC" "Preview shell completion edits"
-    printf "  %s%-28s%s %s\n" "$GREEN" "mo purge --paths" "$NC" "Configure scan directories"
-    printf "  %s%-28s%s %s\n" "$GREEN" "mo analyze /Volumes" "$NC" "Analyze external drives only"
-    printf "  %s%-28s%s %s\n" "$GREEN" "mo update --force" "$NC" "Force reinstall latest stable version"
-    printf "  %s%-28s%s %s\n" "$GREEN" "mo update --nightly" "$NC" "Install latest unreleased main branch build"
-    printf "  %s%-28s%s %s\n" "$GREEN" "mo remove --dry-run" "$NC" "Preview Mole removal"
+    printf "  %s%-28s%s %s\n" "$GREEN" "aa optimize --dry-run" "$NC" "Preview optimization"
+    printf "  %s%-28s%s %s\n" "$GREEN" "aa optimize --whitelist" "$NC" "Manage protected items"
+    printf "  %s%-28s%s %s\n" "$GREEN" "aa uninstall --dry-run" "$NC" "Preview app uninstall"
+    printf "  %s%-28s%s %s\n" "$GREEN" "aa purge --dry-run" "$NC" "Preview project purge"
+    printf "  %s%-28s%s %s\n" "$GREEN" "aa installer --dry-run" "$NC" "Preview installer cleanup"
+    printf "  %s%-28s%s %s\n" "$GREEN" "aa touchid enable --dry-run" "$NC" "Preview Touch ID setup"
+    printf "  %s%-28s%s %s\n" "$GREEN" "aa completion --dry-run" "$NC" "Preview shell completion edits"
+    printf "  %s%-28s%s %s\n" "$GREEN" "aa purge --paths" "$NC" "Configure scan directories"
+    printf "  %s%-28s%s %s\n" "$GREEN" "aa analyze /Volumes" "$NC" "Analyze external drives only"
+    printf "  %s%-28s%s %s\n" "$GREEN" "aa update --force" "$NC" "Force reinstall latest stable version"
+    printf "  %s%-28s%s %s\n" "$GREEN" "aa update --nightly" "$NC" "Install latest unreleased main branch build"
+    printf "  %s%-28s%s %s\n" "$GREEN" "aa remove --dry-run" "$NC" "Preview Anteater removal"
     echo
     printf "%s%s%s\n" "$BLUE" "OPTIONS" "$NC"
     printf "  %s%-28s%s %s\n" "$GREEN" "--debug" "$NC" "Show detailed operation logs"
@@ -301,7 +301,7 @@ show_help() {
 }
 
 # Update flow (Homebrew or installer).
-update_mole() {
+update_anteater() {
     local force_update="${1:-false}"
     local nightly_update="${2:-false}"
     local update_interrupted=false
@@ -317,7 +317,7 @@ update_mole() {
         if [[ "$nightly_update" == "true" ]]; then
             log_error "Nightly update is only available for script installations"
             echo -e "${ICON_REVIEW} Homebrew installs follow stable releases."
-            echo -e "${ICON_REVIEW} Reinstall via script to use: ${GRAY}mo update --nightly${NC}"
+            echo -e "${ICON_REVIEW} Reinstall via script to use: ${GRAY}aa update --nightly${NC}"
             exit 1
         fi
         update_via_homebrew "$VERSION"
@@ -341,7 +341,7 @@ update_mole() {
         if [[ -z "$latest" ]]; then
             log_error "Unable to check for updates. Check network connection."
             echo -e "${ICON_REVIEW} Check if you can access GitHub, https://github.com"
-            echo -e "${ICON_REVIEW} Try again with: ${GRAY}mo update${NC}"
+            echo -e "${ICON_REVIEW} Try again with: ${GRAY}aa update${NC}"
             exit 1
         fi
 
@@ -359,7 +359,7 @@ update_mole() {
         echo "${download_label%...}"
     fi
 
-    local installer_url="https://raw.githubusercontent.com/tw93/mole/main/install.sh"
+    local installer_url="https://raw.githubusercontent.com/cloudwithax/anteater/main/install.sh"
     local tmp_installer
     tmp_installer="$(mktemp_file)" || {
         log_error "Update failed"
@@ -404,20 +404,20 @@ update_mole() {
     if [[ -t 1 ]]; then stop_inline_spinner; fi
     chmod +x "$tmp_installer"
 
-    local mole_path
-    mole_path="$(command -v mole 2> /dev/null || echo "$0")"
+    local anteater_path
+    anteater_path="$(command -v anteater 2> /dev/null || echo "$0")"
     local install_dir
-    install_dir="$(cd "$(dirname "$mole_path")" && pwd)"
+    install_dir="$(cd "$(dirname "$anteater_path")" && pwd)"
 
     local requires_sudo="false"
     if [[ ! -w "$install_dir" ]]; then
         requires_sudo="true"
-    elif [[ -e "$install_dir/mole" && ! -w "$install_dir/mole" ]]; then
+    elif [[ -e "$install_dir/anteater" && ! -w "$install_dir/anteater" ]]; then
         requires_sudo="true"
     fi
 
     if [[ "$requires_sudo" == "true" ]]; then
-        if ! request_sudo_access "Mole update requires admin access"; then
+        if ! request_sudo_access "Anteater update requires admin access"; then
             log_error "Update aborted, admin access denied"
             rm -f "$tmp_installer"
             exit 1
@@ -451,7 +451,7 @@ update_mole() {
                 new_version=$(printf '%s\n' "$output" | sed -n 's/.*version[[:space:]]\{1,\}\([^[:space:]]\{1,\}\).*/\1/p' | head -1)
             fi
             if [[ -z "$new_version" ]]; then
-                new_version=$("$mole_path" --version 2> /dev/null | awk 'NR==1 && NF {print $NF}' || echo "")
+                new_version=$("$anteater_path" --version 2> /dev/null | awk 'NR==1 && NF {print $NF}' || echo "")
             fi
             if [[ -z "$new_version" ]]; then
                 new_version="$fallback_version"
@@ -464,13 +464,13 @@ update_mole() {
 
     local install_output
     local update_tag="V${latest#V}"
-    local config_dir="${MOLE_CONFIG_DIR:-$SCRIPT_DIR}"
+    local config_dir="${ANTEATER_CONFIG_DIR:-$SCRIPT_DIR}"
     if [[ ! -f "$config_dir/lib/core/common.sh" ]]; then
-        config_dir="$HOME/.config/mole"
+        config_dir="$HOME/.config/anteater"
     fi
 
     if [[ "$nightly_update" == "true" ]]; then
-        if install_output=$(MOLE_VERSION="main" "$tmp_installer" --prefix "$install_dir" --config "$config_dir" 2>&1); then
+        if install_output=$(ANTEATER_VERSION="main" "$tmp_installer" --prefix "$install_dir" --config "$config_dir" 2>&1); then
             process_install_output "$install_output" "$latest" "$final_success_label"
         else
             if [[ -t 1 ]]; then stop_inline_spinner; fi
@@ -481,7 +481,7 @@ update_mole() {
             exit 1
         fi
     elif [[ "$force_update" == "true" ]]; then
-        if install_output=$(MOLE_VERSION="$update_tag" "$tmp_installer" --prefix "$install_dir" --config "$config_dir" 2>&1); then
+        if install_output=$(ANTEATER_VERSION="$update_tag" "$tmp_installer" --prefix "$install_dir" --config "$config_dir" 2>&1); then
             process_install_output "$install_output" "$latest" "$final_success_label"
         else
             if [[ -t 1 ]]; then stop_inline_spinner; fi
@@ -492,10 +492,10 @@ update_mole() {
             exit 1
         fi
     else
-        if install_output=$(MOLE_VERSION="$update_tag" "$tmp_installer" --prefix "$install_dir" --config "$config_dir" --update 2>&1); then
+        if install_output=$(ANTEATER_VERSION="$update_tag" "$tmp_installer" --prefix "$install_dir" --config "$config_dir" --update 2>&1); then
             process_install_output "$install_output" "$latest" "$final_success_label"
         else
-            if install_output=$(MOLE_VERSION="$update_tag" "$tmp_installer" --prefix "$install_dir" --config "$config_dir" 2>&1); then
+            if install_output=$(ANTEATER_VERSION="$update_tag" "$tmp_installer" --prefix "$install_dir" --config "$config_dir" 2>&1); then
                 process_install_output "$install_output" "$latest" "$final_success_label"
             else
                 if [[ -t 1 ]]; then stop_inline_spinner; fi
@@ -509,7 +509,7 @@ update_mole() {
     fi
 
     rm -f "$tmp_installer"
-    rm -f "$HOME/.cache/mole/update_message"
+    rm -f "$HOME/.cache/anteater/update_message"
 
     # Cleanup and reset trap
     _update_cleanup
@@ -517,22 +517,22 @@ update_mole() {
 }
 
 # Remove flow (Homebrew + manual + config/cache).
-remove_mole() {
+remove_anteater() {
     local dry_run_mode="${1:-false}"
     local test_mode=false
-    if [[ "${MOLE_TEST_MODE:-0}" == "1" ]]; then
+    if [[ "${ANTEATER_TEST_MODE:-0}" == "1" ]]; then
         test_mode=true
     fi
 
     if [[ -t 1 ]]; then
-        start_inline_spinner "Detecting Mole installations..."
+        start_inline_spinner "Detecting Anteater installations..."
     else
         echo "Detecting installations..."
     fi
 
     local is_homebrew=false
     local brew_cmd=""
-    local brew_has_mole="false"
+    local brew_has_anteater="false"
     local -a manual_installs=()
     local -a alias_installs=()
 
@@ -546,41 +546,41 @@ remove_mole() {
         fi
 
         if [[ -n "$brew_cmd" ]]; then
-            if "$brew_cmd" list mole > /dev/null 2>&1; then
-                brew_has_mole="true"
+            if "$brew_cmd" list anteater > /dev/null 2>&1; then
+                brew_has_anteater="true"
             fi
         fi
 
-        if [[ "$brew_has_mole" == "true" ]] || is_homebrew_install; then
+        if [[ "$brew_has_anteater" == "true" ]] || is_homebrew_install; then
             is_homebrew=true
         fi
     fi
 
-    local found_mole
-    found_mole=""
+    local found_anteater
+    found_anteater=""
     if [[ "$test_mode" != "true" ]]; then
-        found_mole=$(command -v mole 2> /dev/null || true)
-        if [[ -n "$found_mole" && -f "$found_mole" ]]; then
-            if [[ ! -L "$found_mole" ]] || ! readlink "$found_mole" | grep -q "Cellar/mole"; then
-                manual_installs+=("$found_mole")
+        found_anteater=$(command -v anteater 2> /dev/null || true)
+        if [[ -n "$found_anteater" && -f "$found_anteater" ]]; then
+            if [[ ! -L "$found_anteater" ]] || ! readlink "$found_anteater" | grep -q "Cellar/anteater"; then
+                manual_installs+=("$found_anteater")
             fi
         fi
     fi
 
     local -a fallback_paths=()
     if [[ "$test_mode" == "true" ]]; then
-        fallback_paths=("$HOME/.local/bin/mole")
+        fallback_paths=("$HOME/.local/bin/anteater")
     else
         fallback_paths=(
-            "/usr/local/bin/mole"
-            "$HOME/.local/bin/mole"
-            "/opt/local/bin/mole"
+            "/usr/local/bin/anteater"
+            "$HOME/.local/bin/anteater"
+            "/opt/local/bin/anteater"
         )
     fi
 
     for path in "${fallback_paths[@]}"; do
-        if [[ -f "$path" && "$path" != "$found_mole" ]]; then
-            if [[ ! -L "$path" ]] || ! readlink "$path" | grep -q "Cellar/mole"; then
+        if [[ -f "$path" && "$path" != "$found_anteater" ]]; then
+            if [[ ! -L "$path" ]] || ! readlink "$path" | grep -q "Cellar/anteater"; then
                 manual_installs+=("$path")
             fi
         fi
@@ -589,9 +589,9 @@ remove_mole() {
     local found_mo
     found_mo=""
     if [[ "$test_mode" != "true" ]]; then
-        found_mo=$(command -v mo 2> /dev/null || true)
+        found_mo=$(command -v aa 2> /dev/null || true)
         if [[ -n "$found_mo" && -f "$found_mo" ]]; then
-            if [[ ! -L "$found_mo" ]] || ! readlink "$found_mo" | grep -q "Cellar/mole"; then
+            if [[ ! -L "$found_mo" ]] || ! readlink "$found_mo" | grep -q "Cellar/anteater"; then
                 alias_installs+=("$found_mo")
             fi
         fi
@@ -599,18 +599,18 @@ remove_mole() {
 
     local -a alias_fallback=()
     if [[ "$test_mode" == "true" ]]; then
-        alias_fallback=("$HOME/.local/bin/mo")
+        alias_fallback=("$HOME/.local/bin/aa")
     else
         alias_fallback=(
-            "/usr/local/bin/mo"
-            "$HOME/.local/bin/mo"
-            "/opt/local/bin/mo"
+            "/usr/local/bin/aa"
+            "$HOME/.local/bin/aa"
+            "/opt/local/bin/aa"
         )
     fi
 
     for alias in "${alias_fallback[@]}"; do
         if [[ -f "$alias" && "$alias" != "$found_mo" ]]; then
-            if [[ ! -L "$alias" ]] || ! readlink "$alias" | grep -q "Cellar/mole"; then
+            if [[ ! -L "$alias" ]] || ! readlink "$alias" | grep -q "Cellar/anteater"; then
                 alias_installs+=("$alias")
             fi
         fi
@@ -625,7 +625,7 @@ remove_mole() {
     local manual_count=${#manual_installs[@]}
     local alias_count=${#alias_installs[@]}
     if [[ "$is_homebrew" == "false" && ${manual_count:-0} -eq 0 && ${alias_count:-0} -eq 0 ]]; then
-        printf '%s\n\n' "${YELLOW}No Mole installation detected${NC}"
+        printf '%s\n\n' "${YELLOW}No Anteater installation detected${NC}"
         exit 0
     fi
 
@@ -633,9 +633,9 @@ remove_mole() {
     if [[ "$dry_run_mode" == "true" ]]; then
         echo -e "${YELLOW}${ICON_DRY_RUN} DRY RUN MODE${NC}, no files will be removed"
         echo ""
-        echo -e "${YELLOW}Remove Mole${NC}, would delete the following:"
+        echo -e "${YELLOW}Remove Anteater${NC}, would delete the following:"
         if [[ "$is_homebrew" == "true" ]]; then
-            echo -e "  ${GRAY}${ICON_LIST} Would run: brew uninstall --force mole${NC}"
+            echo -e "  ${GRAY}${ICON_LIST} Would run: brew uninstall --force anteater${NC}"
         fi
         if [[ ${manual_count:-0} -gt 0 ]]; then
             for install in "${manual_installs[@]}"; do
@@ -647,24 +647,24 @@ remove_mole() {
                 [[ -f "$alias" ]] && echo -e "  ${GRAY}${ICON_LIST} Would remove: ${alias}${NC}"
             done
         fi
-        [[ -d "$HOME/.cache/mole" ]] && echo -e "  ${GRAY}${ICON_LIST} Would remove: $HOME/.cache/mole${NC}"
-        [[ -d "$HOME/.config/mole" ]] && echo -e "  ${GRAY}${ICON_LIST} Would remove: $HOME/.config/mole${NC}"
-        [[ -d "$HOME/Library/Logs/mole" ]] && echo -e "  ${GRAY}${ICON_LIST} Would remove: $HOME/Library/Logs/mole${NC}"
+        [[ -d "$HOME/.cache/anteater" ]] && echo -e "  ${GRAY}${ICON_LIST} Would remove: $HOME/.cache/anteater${NC}"
+        [[ -d "$HOME/.config/anteater" ]] && echo -e "  ${GRAY}${ICON_LIST} Would remove: $HOME/.config/anteater${NC}"
+        [[ -d "$HOME/Library/Logs/anteater" ]] && echo -e "  ${GRAY}${ICON_LIST} Would remove: $HOME/Library/Logs/anteater${NC}"
 
         printf '\n%s\n\n' "${GREEN}${ICON_SUCCESS}${NC} Dry run complete, no changes made"
         exit 0
     fi
 
-    echo -e "${YELLOW}Remove Mole${NC}, will delete the following:"
+    echo -e "${YELLOW}Remove Anteater${NC}, will delete the following:"
     if [[ "$is_homebrew" == "true" ]]; then
-        echo "  ${ICON_LIST} Mole via Homebrew"
+        echo "  ${ICON_LIST} Anteater via Homebrew"
     fi
     for install in ${manual_installs[@]+"${manual_installs[@]}"} ${alias_installs[@]+"${alias_installs[@]}"}; do
         echo "  ${ICON_LIST} $install"
     done
-    echo "  ${ICON_LIST} ~/.config/mole"
-    echo "  ${ICON_LIST} ~/.cache/mole"
-    echo "  ${ICON_LIST} ~/Library/Logs/mole"
+    echo "  ${ICON_LIST} ~/.config/anteater"
+    echo "  ${ICON_LIST} ~/.cache/anteater"
+    echo "  ${ICON_LIST} ~/Library/Logs/anteater"
     echo -ne "${PURPLE}${ICON_ARROW}${NC} Press ${GREEN}Enter${NC} to confirm, ${GRAY}ESC${NC} to cancel: "
 
     IFS= read -r -s -n1 key || key=""
@@ -685,20 +685,20 @@ remove_mole() {
     if [[ "$is_homebrew" == "true" ]]; then
         if [[ -z "$brew_cmd" ]]; then
             log_error "Homebrew command not found. Please ensure Homebrew is installed and in your PATH."
-            log_warning "Manual step: brew uninstall --force mole"
+            log_warning "Manual step: brew uninstall --force anteater"
             exit 1
         fi
 
-        log_info "Attempting to uninstall Mole via Homebrew..."
+        log_info "Attempting to uninstall Anteater via Homebrew..."
         local brew_uninstall_output
-        if ! brew_uninstall_output=$("$brew_cmd" uninstall --force mole 2>&1); then
+        if ! brew_uninstall_output=$("$brew_cmd" uninstall --force anteater 2>&1); then
             has_error=true
             log_error "Homebrew uninstallation failed:"
             printf "%s\n" "$brew_uninstall_output" | sed "s/^/${RED}  | ${NC}/" >&2
-            log_warning "Manual step: ${YELLOW}brew uninstall --force mole${NC}"
+            log_warning "Manual step: ${YELLOW}brew uninstall --force anteater${NC}"
             echo "" # Add a blank line for readability
         else
-            log_success "Mole uninstalled via Homebrew."
+            log_success "Anteater uninstalled via Homebrew."
         fi
     fi
     if [[ ${manual_count:-0} -gt 0 ]]; then
@@ -731,21 +731,21 @@ remove_mole() {
             fi
         done
     fi
-    if [[ -d "$HOME/.cache/mole" ]]; then
-        rm -rf "$HOME/.cache/mole" 2> /dev/null || true
+    if [[ -d "$HOME/.cache/anteater" ]]; then
+        rm -rf "$HOME/.cache/anteater" 2> /dev/null || true
     fi
-    if [[ -d "$HOME/.config/mole" ]]; then
-        rm -rf "$HOME/.config/mole" 2> /dev/null || true
+    if [[ -d "$HOME/.config/anteater" ]]; then
+        rm -rf "$HOME/.config/anteater" 2> /dev/null || true
     fi
-    if [[ -d "$HOME/Library/Logs/mole" ]]; then
-        rm -rf "$HOME/Library/Logs/mole" 2> /dev/null || true
+    if [[ -d "$HOME/Library/Logs/anteater" ]]; then
+        rm -rf "$HOME/Library/Logs/anteater" 2> /dev/null || true
     fi
 
     local final_message
     if [[ "$has_error" == "true" ]]; then
-        final_message="${YELLOW}${ICON_ERROR} Mole uninstalled with some errors, thank you for using Mole!${NC}"
+        final_message="${YELLOW}${ICON_ERROR} Anteater uninstalled with some errors, thank you for using Anteater!${NC}"
     else
-        final_message="${GREEN}${ICON_SUCCESS} Mole uninstalled successfully, thank you for using Mole!${NC}"
+        final_message="${GREEN}${ICON_SUCCESS} Anteater uninstalled successfully, thank you for using Anteater!${NC}"
     fi
     printf '\n%s\n\n' "$final_message"
 
@@ -807,7 +807,7 @@ interactive_main_menu() {
     local current_option=1
     local first_draw=true
     local brand_banner=""
-    local msg_cache="$HOME/.cache/mole/update_message"
+    local msg_cache="$HOME/.cache/anteater/update_message"
     local update_message=""
 
     brand_banner="$(show_brand_banner)"
@@ -891,7 +891,7 @@ interactive_main_menu() {
                 [[ "${MAIN_MENU_SHOW_UPDATE:-false}" == "true" ]] || continue
                 show_cursor
                 clear
-                update_mole
+                update_anteater
                 exit 0
                 ;;
             "QUIT") cleanup_and_exit ;;
@@ -907,7 +907,7 @@ main() {
     for arg in "$@"; do
         case "$arg" in
             --debug)
-                export MO_DEBUG=1
+                export AA_DEBUG=1
                 ;;
             *)
                 args+=("$arg")
@@ -952,12 +952,12 @@ main() {
                     --nightly) nightly_update=true ;;
                     *)
                         echo "Unknown update option: $arg"
-                        echo "Use 'mole update [--force] [--nightly]' for supported options."
+                        echo "Use 'anteater update [--force] [--nightly]' for supported options."
                         exit 1
                         ;;
                 esac
             done
-            update_mole "$force_update" "$nightly_update"
+            update_anteater "$force_update" "$nightly_update"
             exit 0
             ;;
         "remove")
@@ -967,12 +967,12 @@ main() {
                     "--dry-run" | "-n") dry_run_remove=true ;;
                     *)
                         echo "Unknown remove option: $arg"
-                        echo "Use 'mole remove [--dry-run]' for supported options."
+                        echo "Use 'anteater remove [--dry-run]' for supported options."
                         exit 1
                         ;;
                 esac
             done
-            remove_mole "$dry_run_remove"
+            remove_anteater "$dry_run_remove"
             ;;
         "help" | "--help" | "-h")
             show_help
@@ -988,13 +988,13 @@ main() {
             ;;
         *)
             echo "Unknown command: ${args[0]}"
-            echo "Use 'mole --help' for usage information."
+            echo "Use 'anteater --help' for usage information."
             exit 1
             ;;
     esac
 }
 
-if [[ "${MOLE_TEST_MODE:-0}" == "1" && "${MOLE_SKIP_MAIN:-0}" == "1" ]]; then
+if [[ "${ANTEATER_TEST_MODE:-0}" == "1" && "${ANTEATER_SKIP_MAIN:-0}" == "1" ]]; then
     :
 else
     main "$@"

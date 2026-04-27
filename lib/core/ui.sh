@@ -1,16 +1,16 @@
 #!/bin/bash
-# Mole - UI Components
+# Anteater - UI Components
 # Terminal UI utilities: cursor control, keyboard input, spinners, menus
 
 set -euo pipefail
 
-if [[ -n "${MOLE_UI_LOADED:-}" ]]; then
+if [[ -n "${ANTEATER_UI_LOADED:-}" ]]; then
     return 0
 fi
-readonly MOLE_UI_LOADED=1
+readonly ANTEATER_UI_LOADED=1
 
-_MOLE_CORE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-[[ -z "${MOLE_BASE_LOADED:-}" ]] && source "$_MOLE_CORE_DIR/base.sh"
+_ANTEATER_CORE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+[[ -z "${ANTEATER_BASE_LOADED:-}" ]] && source "$_ANTEATER_CORE_DIR/base.sh"
 
 # Cursor control
 clear_screen() { printf '\033[2J\033[H'; }
@@ -162,7 +162,7 @@ read_key() {
         return 0
     }
 
-    if [[ "${MOLE_READ_KEY_FORCE_CHAR:-}" == "1" ]]; then
+    if [[ "${ANTEATER_READ_KEY_FORCE_CHAR:-}" == "1" ]]; then
         [[ -z "$key" ]] && {
             echo "ENTER"
             return 0
@@ -325,8 +325,8 @@ start_inline_spinner() {
 
     if [[ -t 1 ]]; then
         # Create unique stop flag file for this spinner instance
-        ensure_mole_temp_root
-        INLINE_SPINNER_STOP_FILE="$MOLE_RESOLVED_TMPDIR/mole_spinner_$$_$RANDOM.stop"
+        ensure_anteater_temp_root
+        INLINE_SPINNER_STOP_FILE="$ANTEATER_RESOLVED_TMPDIR/anteater_spinner_$$_$RANDOM.stop"
 
         (
             local stop_file="$INLINE_SPINNER_STOP_FILE"
@@ -342,7 +342,7 @@ start_inline_spinner() {
             while [[ ! -f "$stop_file" ]]; do
                 local c="${chars:$((i % ${#chars})):1}"
                 # Output to stderr to avoid interfering with stdout
-                printf "\r${MOLE_SPINNER_PREFIX:-}${BLUE}%s${NC} %s" "$c" "$display_message" >&2 || break
+                printf "\r${ANTEATER_SPINNER_PREFIX:-}${BLUE}%s${NC} %s" "$c" "$display_message" >&2 || break
                 i=$((i + 1))
                 /bin/sleep 0.05
             done
@@ -438,10 +438,10 @@ format_last_used_summary() {
 # Returns 0 if FDA is granted, 1 if denied, 2 if unknown
 has_full_disk_access() {
     # Cache the result to avoid repeated checks
-    if [[ -n "${MOLE_HAS_FDA:-}" ]]; then
-        if [[ "$MOLE_HAS_FDA" == "1" ]]; then
+    if [[ -n "${ANTEATER_HAS_FDA:-}" ]]; then
+        if [[ "$ANTEATER_HAS_FDA" == "1" ]]; then
             return 0
-        elif [[ "$MOLE_HAS_FDA" == "unknown" ]]; then
+        elif [[ "$ANTEATER_HAS_FDA" == "unknown" ]]; then
             return 2
         else
             return 1
@@ -478,15 +478,15 @@ has_full_disk_access() {
     # 3. tested_count > 0 && accessible_count = 0: No FDA → no
     if [[ $tested_count -eq 0 ]]; then
         # Can't determine - test paths don't exist, treat as unknown
-        export MOLE_HAS_FDA="unknown"
+        export ANTEATER_HAS_FDA="unknown"
         return 2
     elif [[ $accessible_count -gt 0 ]]; then
         # At least one path is accessible → has FDA
-        export MOLE_HAS_FDA=1
+        export ANTEATER_HAS_FDA=1
         return 0
     else
         # Tested paths exist but not accessible → no FDA
-        export MOLE_HAS_FDA=0
+        export ANTEATER_HAS_FDA=0
         return 1
     fi
 }

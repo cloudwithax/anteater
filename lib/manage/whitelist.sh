@@ -5,14 +5,14 @@
 set -euo pipefail
 
 # Get script directory and source dependencies
-_MOLE_MANAGE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$_MOLE_MANAGE_DIR/../core/common.sh"
-source "$_MOLE_MANAGE_DIR/../ui/menu_simple.sh"
+_ANTEATER_MANAGE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$_ANTEATER_MANAGE_DIR/../core/common.sh"
+source "$_ANTEATER_MANAGE_DIR/../ui/menu_simple.sh"
 
 # Config file paths
-readonly WHITELIST_CONFIG_CLEAN="$HOME/.config/mole/whitelist"
-readonly WHITELIST_CONFIG_OPTIMIZE="$HOME/.config/mole/whitelist_optimize"
-readonly WHITELIST_CONFIG_OPTIMIZE_LEGACY="$HOME/.config/mole/whitelist_checks"
+readonly WHITELIST_CONFIG_CLEAN="$HOME/.config/anteater/whitelist"
+readonly WHITELIST_CONFIG_OPTIMIZE="$HOME/.config/anteater/whitelist_optimize"
+readonly WHITELIST_CONFIG_OPTIMIZE_LEGACY="$HOME/.config/anteater/whitelist_checks"
 
 # Default whitelist patterns defined in lib/core/common.sh:
 # - DEFAULT_WHITELIST_PATTERNS
@@ -38,10 +38,10 @@ save_whitelist_patterns() {
 
     if [[ "$mode" == "optimize" ]]; then
         config_file="$WHITELIST_CONFIG_OPTIMIZE"
-        header_text="# Mole Optimization Whitelist - These checks will be skipped during optimization"
+        header_text="# Anteater Optimization Whitelist - These checks will be skipped during optimization"
     else
         config_file="$WHITELIST_CONFIG_CLEAN"
-        header_text="# Mole Whitelist - Protected paths won't be deleted\n# Default protections: Playwright browsers, HuggingFace models, Maven repo, Ollama models, Surge Mac, R renv, Finder metadata\n# Add one pattern per line to keep items safe."
+        header_text="# Anteater Whitelist - Protected paths won't be deleted\n# Default protections: Playwright browsers, HuggingFace models, Maven repo, Ollama models, Surge Mac, R renv, Finder metadata\n# Add one pattern per line to keep items safe."
     fi
 
     ensure_user_file "$config_file"
@@ -162,7 +162,7 @@ get_optimize_whitelist_items() {
 macOS Firewall check|firewall|security_check
 Gatekeeper check|gatekeeper|security_check
 macOS system updates check|check_macos_updates|update_check
-Mole updates check|check_mole_update|update_check
+Anteater updates check|check_anteater_update|update_check
 Homebrew health check (doctor)|check_brew_health|health_check
 SIP status check|check_sip|security_check
 FileVault status check|check_filevault|security_check
@@ -366,14 +366,14 @@ ${GRAY}Edit: ${display_config}${NC}"
             preselected_indices+=("$i")
         done
         local IFS=','
-        export MOLE_PRESELECTED_INDICES="${preselected_indices[*]}"
+        export ANTEATER_PRESELECTED_INDICES="${preselected_indices[*]}"
     else
-        unset MOLE_PRESELECTED_INDICES
+        unset ANTEATER_PRESELECTED_INDICES
     fi
 
-    MOLE_SELECTION_RESULT=""
+    ANTEATER_SELECTION_RESULT=""
     paginated_multi_select "$menu_title" "${menu_options[@]}"
-    unset MOLE_PRESELECTED_INDICES
+    unset ANTEATER_PRESELECTED_INDICES
     local exit_code=$?
 
     # Normal exit or cancel
@@ -383,9 +383,9 @@ ${GRAY}Edit: ${display_config}${NC}"
 
     # Convert selected indices to patterns
     local -a selected_patterns=()
-    if [[ -n "$MOLE_SELECTION_RESULT" ]]; then
+    if [[ -n "$ANTEATER_SELECTION_RESULT" ]]; then
         local -a selected_indices
-        IFS=',' read -ra selected_indices <<< "$MOLE_SELECTION_RESULT"
+        IFS=',' read -ra selected_indices <<< "$ANTEATER_SELECTION_RESULT"
         for idx in "${selected_indices[@]}"; do
             if [[ $idx -ge 0 && $idx -lt ${#cache_patterns[@]} ]]; then
                 local pattern="${cache_patterns[$idx]}"

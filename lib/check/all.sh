@@ -14,7 +14,7 @@ list_login_items() {
     fi
 
     # Skip AppleScript during tests to avoid permission dialogs
-    if [[ "${MOLE_TEST_MODE:-0}" == "1" || "${MOLE_TEST_NO_AUTH:-0}" == "1" ]]; then
+    if [[ "${ANTEATER_TEST_MODE:-0}" == "1" || "${ANTEATER_TEST_NO_AUTH:-0}" == "1" ]]; then
         return
     fi
 
@@ -195,7 +195,7 @@ check_all_security() {
 # ============================================================================
 
 # Cache configuration
-CACHE_DIR="${HOME}/.cache/mole"
+CACHE_DIR="${HOME}/.cache/anteater"
 CACHE_TTL=600 # 10 minutes in seconds
 
 # Ensure cache directory exists
@@ -216,8 +216,8 @@ reset_softwareupdate_cache() {
     SOFTWARE_UPDATE_LIST_LOADED="false"
 }
 
-reset_mole_cache() {
-    clear_cache_file "$CACHE_DIR/mole_version"
+reset_anteater_cache() {
+    clear_cache_file "$CACHE_DIR/anteater_version"
 }
 
 # Check if cache is still valid
@@ -291,7 +291,7 @@ get_software_updates() {
 
     local spinner_started=false
     if [[ -t 1 && -z "${SOFTWAREUPDATE_SPINNER_SHOWN:-}" ]]; then
-        MOLE_SPINNER_PREFIX="  " start_inline_spinner "Checking system updates..."
+        ANTEATER_SPINNER_PREFIX="  " start_inline_spinner "Checking system updates..."
         spinner_started=true
         export SOFTWAREUPDATE_SPINNER_SHOWN=1
     fi
@@ -308,7 +308,7 @@ get_software_updates() {
         if [[ -f "$cache_file" ]]; then
             SOFTWARE_UPDATE_LIST=$(cat "$cache_file" 2> /dev/null || true)
         fi
-        if [[ -n "${MO_DEBUG:-}" ]]; then
+        if [[ -n "${AA_DEBUG:-}" ]]; then
             echo "[DEBUG] softwareupdate preload exit status: $sw_status" >&2
         fi
     fi
@@ -359,7 +359,7 @@ check_homebrew_updates() {
         local spinner_started=false
 
         if [[ -t 1 ]]; then
-            MOLE_SPINNER_PREFIX="  " start_inline_spinner "Checking Homebrew updates..."
+            ANTEATER_SPINNER_PREFIX="  " start_inline_spinner "Checking Homebrew updates..."
             spinner_started=true
         fi
 
@@ -442,7 +442,7 @@ check_macos_update() {
     local sw_output=""
     sw_output=$(get_software_updates)
 
-    if [[ -n "${MO_DEBUG:-}" ]]; then
+    if [[ -n "${AA_DEBUG:-}" ]]; then
         echo "[DEBUG] softwareupdate cached output lines: $(printf '%s\n' "$sw_output" | wc -l | tr -d ' ')" >&2
     fi
 
@@ -466,22 +466,22 @@ check_macos_update() {
     fi
 }
 
-check_mole_update() {
-    if command -v is_whitelisted > /dev/null && is_whitelisted "check_mole_update"; then return; fi
+check_anteater_update() {
+    if command -v is_whitelisted > /dev/null && is_whitelisted "check_anteater_update"; then return; fi
 
-    # Check if Mole has updates
-    # Auto-detect version from mole main script
+    # Check if Anteater has updates
+    # Auto-detect version from anteater main script
     local current_version
-    if [[ -f "${SCRIPT_DIR:-/usr/local/bin}/mole" ]]; then
-        current_version=$(grep '^VERSION=' "${SCRIPT_DIR:-/usr/local/bin}/mole" 2> /dev/null | head -1 | sed 's/VERSION="\(.*\)"/\1/' || echo "unknown")
+    if [[ -f "${SCRIPT_DIR:-/usr/local/bin}/anteater" ]]; then
+        current_version=$(grep '^VERSION=' "${SCRIPT_DIR:-/usr/local/bin}/anteater" 2> /dev/null | head -1 | sed 's/VERSION="\(.*\)"/\1/' || echo "unknown")
     else
         current_version="${VERSION:-unknown}"
     fi
 
     local latest_version=""
-    local cache_file="$CACHE_DIR/mole_version"
+    local cache_file="$CACHE_DIR/anteater_version"
 
-    export MOLE_UPDATE_AVAILABLE="false"
+    export ANTEATER_UPDATE_AVAILABLE="false"
 
     # Check cache first
     if is_cache_valid "$cache_file"; then
@@ -489,15 +489,15 @@ check_mole_update() {
     else
         # Show spinner while checking
         if [[ -t 1 ]]; then
-            MOLE_SPINNER_PREFIX="  " start_inline_spinner "Checking Mole version..."
+            ANTEATER_SPINNER_PREFIX="  " start_inline_spinner "Checking Anteater version..."
         fi
 
         # Try to get latest version from GitHub
         if command -v curl > /dev/null 2>&1; then
             # Run in background to allow Ctrl+C to interrupt
             local temp_version
-            temp_version=$(mktemp_file "mole_version_check")
-            curl -fsSL --connect-timeout 3 --max-time 5 https://api.github.com/repos/tw93/mole/releases/latest 2> /dev/null | grep '"tag_name"' | sed -E 's/.*"v?([^"]+)".*/\1/' > "$temp_version" &
+            temp_version=$(mktemp_file "anteater_version_check")
+            curl -fsSL --connect-timeout 3 --max-time 5 https://api.github.com/repos/cloudwithax/anteater/releases/latest 2> /dev/null | grep '"tag_name"' | sed -E 's/.*"v?([^"]+)".*/\1/' > "$temp_version" &
             local curl_pid=$!
 
             # Wait for curl to complete (allows Ctrl+C to interrupt)
@@ -527,13 +527,13 @@ check_mole_update() {
     if [[ -n "$latest_version" && "$current_version" != "$latest_version" ]]; then
         # Compare versions
         if [[ "$(printf '%s\n' "$current_version" "$latest_version" | sort -V | head -1)" == "$current_version" ]]; then
-            export MOLE_UPDATE_AVAILABLE="true"
-            printf "  ${GRAY}%s${NC} %-12s ${YELLOW}%s${NC}, running %s\n" "$ICON_WARNING" "Mole" "${latest_version} available" "${current_version}"
+            export ANTEATER_UPDATE_AVAILABLE="true"
+            printf "  ${GRAY}%s${NC} %-12s ${YELLOW}%s${NC}, running %s\n" "$ICON_WARNING" "Anteater" "${latest_version} available" "${current_version}"
         else
-            printf "  ${GREEN}✓${NC} %-12s %s\n" "Mole" "Latest version ${current_version}"
+            printf "  ${GREEN}✓${NC} %-12s %s\n" "Anteater" "Latest version ${current_version}"
         fi
     else
-        printf "  ${GREEN}✓${NC} %-12s %s\n" "Mole" "Latest version ${current_version}"
+        printf "  ${GREEN}✓${NC} %-12s %s\n" "Anteater" "Latest version ${current_version}"
     fi
 }
 
@@ -549,7 +549,7 @@ check_all_updates() {
     check_homebrew_updates
     check_appstore_updates
     check_macos_update
-    check_mole_update
+    check_anteater_update
 }
 
 get_appstore_update_labels() {
@@ -657,7 +657,7 @@ check_login_items() {
     if [[ -t 0 ]]; then
         # Show spinner while getting login items
         if [[ -t 1 ]]; then
-            MOLE_SPINNER_PREFIX="  " start_inline_spinner "Checking login items..."
+            ANTEATER_SPINNER_PREFIX="  " start_inline_spinner "Checking login items..."
         fi
 
         while IFS= read -r login_item; do
@@ -712,7 +712,7 @@ check_cache_size() {
 
     # Show spinner while calculating cache size
     if [[ -t 1 ]]; then
-        MOLE_SPINNER_PREFIX="  " start_inline_spinner "Scanning cache..."
+        ANTEATER_SPINNER_PREFIX="  " start_inline_spinner "Scanning cache..."
     fi
 
     for cache_path in "${cache_paths[@]}"; do
@@ -797,7 +797,7 @@ check_orphan_launch_agents() {
     if command -v is_whitelisted > /dev/null && is_whitelisted "check_orphan_launch_agents"; then return; fi
 
     local -a search_dirs orphans=()
-    IFS=: read -r -a search_dirs <<< "${MOLE_LAUNCH_AGENT_DIRS:-$HOME/Library/LaunchAgents:/Library/LaunchAgents}"
+    IFS=: read -r -a search_dirs <<< "${ANTEATER_LAUNCH_AGENT_DIRS:-$HOME/Library/LaunchAgents:/Library/LaunchAgents}"
 
     local plist label program
     for dir in "${search_dirs[@]}"; do
@@ -893,7 +893,7 @@ check_nonstandard_apps() {
     ((count > 2)) && preview="${preview}, ${nonstandard_apps[2]}"
     ((count > 3)) && preview="${preview} +$((count - 3))"
     echo -e "    ${GRAY}${preview}${NC}"
-    echo -e "    ${GRAY}Run 'mo uninstall' to manage these apps${NC}"
+    echo -e "    ${GRAY}Run 'aa uninstall' to manage these apps${NC}"
 }
 
 check_system_health() {

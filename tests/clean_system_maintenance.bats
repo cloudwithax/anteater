@@ -11,8 +11,8 @@ setup_file() {
     export HOME
 
     # Prevent AppleScript permission dialogs during tests
-    MOLE_TEST_MODE=1
-    export MOLE_TEST_MODE
+    ANTEATER_TEST_MODE=1
+    export ANTEATER_TEST_MODE
 
     mkdir -p "$HOME"
 }
@@ -353,8 +353,8 @@ set -euo pipefail
 source "$PROJECT_ROOT/lib/core/common.sh"
 source "$PROJECT_ROOT/lib/clean/brew.sh"
 
-mkdir -p "$HOME/.cache/mole"
-date +%s > "$HOME/.cache/mole/brew_last_cleanup"
+mkdir -p "$HOME/.cache/anteater"
+date +%s > "$HOME/.cache/anteater/brew_last_cleanup"
 
 brew() { return 0; }
 
@@ -371,8 +371,8 @@ set -euo pipefail
 source "$PROJECT_ROOT/lib/core/common.sh"
 source "$PROJECT_ROOT/lib/clean/brew.sh"
 
-mkdir -p "$HOME/.cache/mole"
-rm -f "$HOME/.cache/mole/brew_last_cleanup"
+mkdir -p "$HOME/.cache/anteater"
+rm -f "$HOME/.cache/anteater/brew_last_cleanup"
 
     start_inline_spinner(){ :; }
     stop_inline_spinner(){ :; }
@@ -466,7 +466,7 @@ source "$PROJECT_ROOT/lib/check/all.sh"
 
 run_with_timeout() { return 124; }
 brew() { return 0; }
-rm -f "$HOME/.cache/mole/brew_updates"
+rm -f "$HOME/.cache/anteater/brew_updates"
 
 check_homebrew_updates
 echo "COUNTS=${BREW_OUTDATED_COUNT}:${BREW_FORMULA_OUTDATED_COUNT}:${BREW_CASK_OUTDATED_COUNT}"
@@ -486,7 +486,7 @@ source "$PROJECT_ROOT/lib/check/all.sh"
 
 run_with_timeout() { return 1; }
 brew() { return 0; }
-rm -f "$HOME/.cache/mole/brew_updates"
+rm -f "$HOME/.cache/anteater/brew_updates"
 
 check_homebrew_updates
 echo "COUNTS=${BREW_OUTDATED_COUNT}:${BREW_FORMULA_OUTDATED_COUNT}:${BREW_CASK_OUTDATED_COUNT}"
@@ -660,8 +660,8 @@ EOF
 set -euo pipefail
 source "$PROJECT_ROOT/lib/core/common.sh"
 source "$PROJECT_ROOT/lib/check/all.sh"
-mkdir -p "$HOME/.cache/mole"
-cat > "$HOME/.cache/mole/softwareupdate_list" <<'OUT'
+mkdir -p "$HOME/.cache/anteater"
+cat > "$HOME/.cache/anteater/softwareupdate_list" <<'OUT'
 Software Update Tool
 
 Software Update found the following new or updated software:
@@ -694,7 +694,7 @@ calls_file="$HOME/softwareupdate_calls"
 printf '0\n' > "$calls_file"
 first_file="$HOME/first_updates.txt"
 second_file="$HOME/second_updates.txt"
-rm -f "$HOME/.cache/mole/softwareupdate_list"
+rm -f "$HOME/.cache/anteater/softwareupdate_list"
 SOFTWARE_UPDATE_LIST=""
 SOFTWARE_UPDATE_LIST_LOADED="false"
 run_with_timeout() {
@@ -731,13 +731,13 @@ EOF
     [[ "$output" == *"macOS 2"* ]]
 }
 
-@test "check_macos_update outputs debug info when MO_DEBUG set" {
+@test "check_macos_update outputs debug info when AA_DEBUG set" {
     run bash --noprofile --norc << 'EOF'
 set -euo pipefail
 source "$PROJECT_ROOT/lib/core/common.sh"
 source "$PROJECT_ROOT/lib/check/all.sh"
 
-export MO_DEBUG=1
+export AA_DEBUG=1
 
 run_with_timeout() {
     local timeout="${1:-}"
@@ -763,7 +763,7 @@ EOF
     run bash --noprofile --norc -c '
         set -euo pipefail
         PATH="/usr/bin:/bin"
-        unset MO_TIMEOUT_INITIALIZED MO_TIMEOUT_BIN
+        unset AA_TIMEOUT_INITIALIZED AA_TIMEOUT_BIN
         source "'"$PROJECT_ROOT"'/lib/core/common.sh"
         run_with_timeout 1 sleep 0.1
     '
@@ -774,7 +774,7 @@ EOF
     run bash --noprofile --norc -c '
         set -euo pipefail
         PATH="/usr/bin:/bin"
-        unset MO_TIMEOUT_INITIALIZED MO_TIMEOUT_BIN
+        unset AA_TIMEOUT_INITIALIZED AA_TIMEOUT_BIN
         source "'"$PROJECT_ROOT"'/lib/core/common.sh"
         run_with_timeout 1 sleep 5
     '
@@ -870,7 +870,7 @@ EOF
 }
 
 @test "get_path_size_kb returns zero for missing directory" {
-    run env HOME="$HOME" PROJECT_ROOT="$PROJECT_ROOT" MO_DEBUG=0 bash --noprofile --norc << 'EOF'
+    run env HOME="$HOME" PROJECT_ROOT="$PROJECT_ROOT" AA_DEBUG=0 bash --noprofile --norc << 'EOF'
 set -euo pipefail
 source "$PROJECT_ROOT/lib/core/common.sh"
 size=$(get_path_size_kb "/nonexistent/path")
@@ -885,7 +885,7 @@ EOF
     mkdir -p "$HOME/test_size"
     dd if=/dev/zero of="$HOME/test_size/file.dat" bs=1024 count=10 2> /dev/null
 
-    run env HOME="$HOME" PROJECT_ROOT="$PROJECT_ROOT" MO_DEBUG=0 bash --noprofile --norc << 'EOF'
+    run env HOME="$HOME" PROJECT_ROOT="$PROJECT_ROOT" AA_DEBUG=0 bash --noprofile --norc << 'EOF'
 set -euo pipefail
 source "$PROJECT_ROOT/lib/core/common.sh"
 size=$(get_path_size_kb "$HOME/test_size")

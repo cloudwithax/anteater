@@ -23,7 +23,7 @@ teardown_file() {
 setup() {
     rm -rf "$HOME/.config"
     mkdir -p "$HOME"
-    WHITELIST_PATH="$HOME/.config/mole/whitelist"
+    WHITELIST_PATH="$HOME/.config/anteater/whitelist"
 }
 
 @test "patterns_equivalent treats paths with tilde expansion as equal" {
@@ -62,7 +62,7 @@ setup() {
 
 @test "load_whitelist falls back to defaults when config missing" {
     rm -f "$WHITELIST_PATH"
-    HOME="$HOME" bash --noprofile --norc -c "source '$PROJECT_ROOT/lib/manage/whitelist.sh'; rm -f \"\$HOME/.config/mole/whitelist\"; load_whitelist; printf '%s\n' \"\${CURRENT_WHITELIST_PATTERNS[@]}\"" > "$HOME/current_whitelist.txt"
+    HOME="$HOME" bash --noprofile --norc -c "source '$PROJECT_ROOT/lib/manage/whitelist.sh'; rm -f \"\$HOME/.config/anteater/whitelist\"; load_whitelist; printf '%s\n' \"\${CURRENT_WHITELIST_PATTERNS[@]}\"" > "$HOME/current_whitelist.txt"
     HOME="$HOME" bash --noprofile --norc -c "source '$PROJECT_ROOT/lib/manage/whitelist.sh'; printf '%s\n' \"\${DEFAULT_WHITELIST_PATTERNS[@]}\"" > "$HOME/default_whitelist.txt"
 
     current=()
@@ -96,21 +96,21 @@ setup() {
     [ "$status" -ne 0 ]
 }
 
-@test "mo clean --whitelist persists selections" {
-    whitelist_file="$HOME/.config/mole/whitelist"
+@test "aa clean --whitelist persists selections" {
+    whitelist_file="$HOME/.config/anteater/whitelist"
     mkdir -p "$(dirname "$whitelist_file")"
 
-    run bash --noprofile --norc -c "cd '$PROJECT_ROOT'; printf \$'\\n' | HOME='$HOME' ./mo clean --whitelist"
+    run bash --noprofile --norc -c "cd '$PROJECT_ROOT'; printf \$'\\n' | HOME='$HOME' ./aa clean --whitelist"
     [ "$status" -eq 0 ]
     first_pattern=$(grep -v '^[[:space:]]*#' "$whitelist_file" | grep -v '^[[:space:]]*$' | head -n 1)
     [ -n "$first_pattern" ]
 
-    run bash --noprofile --norc -c "cd '$PROJECT_ROOT'; printf \$' \\n' | HOME='$HOME' ./mo clean --whitelist"
+    run bash --noprofile --norc -c "cd '$PROJECT_ROOT'; printf \$' \\n' | HOME='$HOME' ./aa clean --whitelist"
     [ "$status" -eq 0 ]
     run grep -Fxq "$first_pattern" "$whitelist_file"
     [ "$status" -eq 1 ]
 
-    run bash --noprofile --norc -c "cd '$PROJECT_ROOT'; printf \$'\\n' | HOME='$HOME' ./mo clean --whitelist"
+    run bash --noprofile --norc -c "cd '$PROJECT_ROOT'; printf \$'\\n' | HOME='$HOME' ./aa clean --whitelist"
     [ "$status" -eq 0 ]
     run grep -Fxq "$first_pattern" "$whitelist_file"
     [ "$status" -eq 1 ]
@@ -154,7 +154,7 @@ setup() {
     local status
     if HOME="$HOME" bash --noprofile --norc -c "
         source '$PROJECT_ROOT/lib/manage/whitelist.sh'
-        rm -f \"\$HOME/.config/mole/whitelist\"
+        rm -f \"\$HOME/.config/anteater/whitelist\"
         load_whitelist
         WHITELIST_PATTERNS=(\"\${CURRENT_WHITELIST_PATTERNS[@]}\")
         is_path_whitelisted \"\$HOME/Library/Caches/tealdeer\"

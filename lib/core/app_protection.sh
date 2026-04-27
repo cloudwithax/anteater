@@ -1,16 +1,16 @@
 #!/bin/bash
-# Mole - Application Protection
+# Anteater - Application Protection
 # System critical and data-protected application lists
 
 set -euo pipefail
 
-if [[ -n "${MOLE_APP_PROTECTION_LOADED:-}" ]]; then
+if [[ -n "${ANTEATER_APP_PROTECTION_LOADED:-}" ]]; then
     return 0
 fi
-readonly MOLE_APP_PROTECTION_LOADED=1
+readonly ANTEATER_APP_PROTECTION_LOADED=1
 
-_MOLE_CORE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-[[ -z "${MOLE_BASE_LOADED:-}" ]] && source "$_MOLE_CORE_DIR/base.sh"
+_ANTEATER_CORE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+[[ -z "${ANTEATER_BASE_LOADED:-}" ]] && source "$_ANTEATER_CORE_DIR/base.sh"
 
 # Declare WHITELIST_PATTERNS if not already set (used by is_path_whitelisted)
 if ! declare -p WHITELIST_PATTERNS &> /dev/null; then
@@ -746,7 +746,7 @@ should_protect_data() {
 # Check if a path is protected from deletion
 # Centralized logic to protect system settings, control center, and critical apps
 #
-# In uninstall mode (MOLE_UNINSTALL_MODE=1), only system-critical components are protected.
+# In uninstall mode (ANTEATER_UNINSTALL_MODE=1), only system-critical components are protected.
 # Data-protected apps (VPNs, dev tools, etc.) can be uninstalled when user explicitly chooses to.
 #
 # Args: $1 - path to check
@@ -805,7 +805,7 @@ should_protect_path() {
     if [[ "$path" =~ /Library/Containers/([^/]+) ]] || [[ "$path" =~ /Library/Group\ Containers/([^/]+) ]]; then
         local bundle_id="${BASH_REMATCH[1]}"
         # In uninstall mode, only system components are protected; skip data protection
-        if [[ "${MOLE_UNINSTALL_MODE:-0}" != "1" ]] && should_protect_data "$bundle_id"; then
+        if [[ "${ANTEATER_UNINSTALL_MODE:-0}" != "1" ]] && should_protect_data "$bundle_id"; then
             return 0
         fi
     fi
@@ -822,8 +822,8 @@ should_protect_path() {
         */Library/Preferences/com.apple.dock.plist | */Library/Preferences/com.apple.finder.plist)
             return 0
             ;;
-        # Protect Mole's own runtime logs so cleanup cannot delete its active log targets.
-        */Library/Logs/mole | */Library/Logs/mole/ | */Library/Logs/mole/*)
+        # Protect Anteater's own runtime logs so cleanup cannot delete its active log targets.
+        */Library/Logs/anteater | */Library/Logs/anteater/ | */Library/Logs/anteater/*)
             return 0
             ;;
         # Bluetooth and WiFi configurations
@@ -844,7 +844,7 @@ should_protect_path() {
     # 6. Match full path against protected patterns
     # This catches things like /Users/tw93/Library/Caches/Claude when pattern is *Claude*
     # In uninstall mode, only check system-critical bundles (user explicitly chose to uninstall)
-    if [[ "${MOLE_UNINSTALL_MODE:-0}" == "1" ]]; then
+    if [[ "${ANTEATER_UNINSTALL_MODE:-0}" == "1" ]]; then
         # Uninstall mode: first check if it's an uninstallable Apple app
         for pattern in "${APPLE_UNINSTALLABLE_APPS[@]}"; do
             if bundle_matches_pattern "$path" "$pattern"; then
@@ -868,7 +868,7 @@ should_protect_path() {
 
     # 7. Check if the filename itself matches any protected patterns
     # Skip in uninstall mode - user explicitly chose to remove this app
-    if [[ "${MOLE_UNINSTALL_MODE:-0}" != "1" ]]; then
+    if [[ "${ANTEATER_UNINSTALL_MODE:-0}" != "1" ]]; then
         local filename
         filename=$(basename "$path")
         if should_protect_data "$filename"; then
@@ -1530,7 +1530,7 @@ force_kill_app() {
     local app_name="$1"
     local app_path="${2:-""}"
 
-    if [[ "${MOLE_DRY_RUN:-0}" == "1" ]]; then
+    if [[ "${ANTEATER_DRY_RUN:-0}" == "1" ]]; then
         debug_log "[DRY RUN] Would terminate running app: $app_name"
         return 0
     fi

@@ -1,25 +1,25 @@
 #!/bin/bash
-# Hint notices used by `mo clean` (non-destructive guidance only).
+# Hint notices used by `aa clean` (non-destructive guidance only).
 
 set -euo pipefail
 
-mole_hints_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+anteater_hints_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck disable=SC1090
-source "$mole_hints_dir/purge_shared.sh"
+source "$anteater_hints_dir/purge_shared.sh"
 
-# Quick reminder probe for project build artifacts handled by `mo purge`.
+# Quick reminder probe for project build artifacts handled by `aa purge`.
 # Designed to be very fast: shallow directory checks only, no deep find scans.
 # shellcheck disable=SC2329
 load_quick_purge_hint_paths() {
-    local config_file="$HOME/.config/mole/purge_paths"
+    local config_file="$HOME/.config/anteater/purge_paths"
     local -a paths=()
 
     while IFS= read -r line; do
         [[ -n "$line" ]] && paths+=("$line")
-    done < <(mole_purge_read_paths_config "$config_file")
+    done < <(anteater_purge_read_paths_config "$config_file")
 
     if [[ ${#paths[@]} -eq 0 ]]; then
-        paths=("${MOLE_PURGE_DEFAULT_SEARCH_PATHS[@]}")
+        paths=("${ANTEATER_PURGE_DEFAULT_SEARCH_PATHS[@]}")
     fi
 
     if [[ ${#paths[@]} -gt 0 ]]; then
@@ -158,7 +158,7 @@ record_project_artifact_hint() {
 
 # shellcheck disable=SC2329
 is_quick_purge_project_root() {
-    mole_purge_is_project_root "$1"
+    anteater_purge_is_project_root "$1"
 }
 
 # shellcheck disable=SC2329
@@ -179,7 +179,7 @@ probe_project_artifact_hints() {
     local -a target_names=()
     while IFS= read -r target_name; do
         [[ -n "$target_name" ]] && target_names+=("$target_name")
-    done < <(mole_purge_quick_hint_target_names)
+    done < <(anteater_purge_quick_hint_target_names)
 
     local -a scan_roots=()
     while IFS= read -r path; do
@@ -374,7 +374,7 @@ show_system_data_hint_notice() {
         echo -e "  ${GREEN}${ICON_LIST}${NC} ${clue_labels[$i]}: ${human_size}"
         echo -e "  ${GRAY}${ICON_SUBLIST}${NC} Path: ${GRAY}${clue_paths[$i]}${NC}"
     done
-    echo -e "  ${GRAY}${ICON_REVIEW}${NC} Review: mo analyze, Device backups, docker system df"
+    echo -e "  ${GRAY}${ICON_REVIEW}${NC} Review: aa analyze, Device backups, docker system df"
 }
 
 # shellcheck disable=SC2329
@@ -419,7 +419,7 @@ show_project_artifact_hint_notice() {
     if [[ -n "$example_text" ]]; then
         echo -e "  ${GRAY}${ICON_SUBLIST}${NC} Examples: ${GRAY}${example_text}${NC}"
     fi
-    echo -e "  ${GRAY}${ICON_REVIEW}${NC} Review: mo purge"
+    echo -e "  ${GRAY}${ICON_REVIEW}${NC} Review: aa purge"
 }
 
 # shellcheck disable=SC2329

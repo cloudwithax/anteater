@@ -48,15 +48,15 @@ setup() {
 @test "completion --help shows usage" {
 	run "$PROJECT_ROOT/bin/completion.sh" --help
 	[ "$status" -ne 0 ]
-	[[ "$output" == *"Usage: mole completion"* ]]
+	[[ "$output" == *"Usage: anteater completion"* ]]
 	[[ "$output" == *"Auto-install"* ]]
 }
 
 @test "completion bash generates valid bash script" {
 	run "$PROJECT_ROOT/bin/completion.sh" bash
 	[ "$status" -eq 0 ]
-	[[ "$output" == *"_mole_completions"* ]]
-	[[ "$output" == *"complete -F _mole_completions mole mo"* ]]
+	[[ "$output" == *"_anteater_completions"* ]]
+	[[ "$output" == *"complete -F _anteater_completions anteater aa"* ]]
 }
 
 @test "completion bash script includes all commands" {
@@ -72,23 +72,23 @@ setup() {
 	[[ "$output" == *"completion"* ]]
 }
 
-@test "completion bash script supports mo command" {
+@test "completion bash script supports aa command" {
 	run "$PROJECT_ROOT/bin/completion.sh" bash
 	[ "$status" -eq 0 ]
-	[[ "$output" == *"complete -F _mole_completions mole mo"* ]]
+	[[ "$output" == *"complete -F _anteater_completions anteater aa"* ]]
 }
 
 @test "completion bash can be loaded in bash" {
-	run bash -c "eval \"\$(\"$PROJECT_ROOT/bin/completion.sh\" bash)\" && complete -p mole"
+	run bash -c "eval \"\$(\"$PROJECT_ROOT/bin/completion.sh\" bash)\" && complete -p anteater"
 	[ "$status" -eq 0 ]
-	[[ "$output" == *"_mole_completions"* ]]
+	[[ "$output" == *"_anteater_completions"* ]]
 }
 
 @test "completion zsh generates valid zsh script" {
 	run "$PROJECT_ROOT/bin/completion.sh" zsh
 	[ "$status" -eq 0 ]
-	[[ "$output" == *"#compdef mole mo"* ]]
-	[[ "$output" == *"_mole()"* ]]
+	[[ "$output" == *"#compdef anteater aa"* ]]
+	[[ "$output" == *"_anteater()"* ]]
 }
 
 @test "completion zsh includes command descriptions" {
@@ -101,16 +101,16 @@ setup() {
 @test "completion fish generates valid fish script" {
 	run "$PROJECT_ROOT/bin/completion.sh" fish
 	[ "$status" -eq 0 ]
-	[[ "$output" == *"complete -f -c mole"* ]]
-	[[ "$output" == *"complete -f -c mo"* ]]
+	[[ "$output" == *"complete -f -c anteater"* ]]
+	[[ "$output" == *"complete -f -c aa"* ]]
 }
 
-@test "completion fish includes both mole and mo commands" {
+@test "completion fish includes both anteater and aa commands" {
 	output="$("$PROJECT_ROOT/bin/completion.sh" fish)"
-	mole_count=$(echo "$output" | grep -c "complete -f -c mole")
-	mo_count=$(echo "$output" | grep -c "complete -f -c mo")
+	anteater_count=$(echo "$output" | grep -c "complete -f -c anteater")
+	mo_count=$(echo "$output" | grep -c "complete -f -c aa")
 
-	[ "$mole_count" -gt 0 ]
+	[ "$anteater_count" -gt 0 ]
 	[ "$mo_count" -gt 0 ]
 }
 
@@ -127,14 +127,14 @@ setup() {
 
 	[ -f "$HOME/.zshrc" ] || skip "Auto-install didn't create .zshrc"
 
-	run grep -E "mole[[:space:]]+completion" "$HOME/.zshrc"
+	run grep -E "anteater[[:space:]]+completion" "$HOME/.zshrc"
 	[ "$status" -eq 0 ]
 }
 
 @test "completion auto-install detects already installed" {
 	mkdir -p "$HOME"
 	# shellcheck disable=SC2016
-	echo 'eval "$(mole completion zsh)"' >"$HOME/.zshrc"
+	echo 'eval "$(anteater completion zsh)"' >"$HOME/.zshrc"
 
 	run env SHELL=/bin/zsh "$PROJECT_ROOT/bin/completion.sh"
 	[ "$status" -eq 0 ]

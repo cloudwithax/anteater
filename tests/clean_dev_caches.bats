@@ -91,7 +91,7 @@ note_activity() { :; }
 run_with_timeout() { shift; "$@"; }
 npm() {
     if [[ "$1" == "config" && "$2" == "get" && "$3" == "cache" ]]; then
-        echo "/tmp/mole-custom-npm-cache"
+        echo "/tmp/anteater-custom-npm-cache"
         return 0
     fi
     return 0
@@ -101,10 +101,10 @@ EOF
 
     [ "$status" -eq 0 ]
     [[ "$output" == *"npm cache directory|$HOME/.npm/_cacache/*"* ]]
-    [[ "$output" == *"npm cache directory (custom path)|/tmp/mole-custom-npm-cache/_cacache/*"* ]]
-    [[ "$output" == *"npm npx cache (custom path)|/tmp/mole-custom-npm-cache/_npx/*"* ]]
-    [[ "$output" == *"npm logs (custom path)|/tmp/mole-custom-npm-cache/_logs/*"* ]]
-    [[ "$output" == *"npm prebuilds (custom path)|/tmp/mole-custom-npm-cache/_prebuilds/*"* ]]
+    [[ "$output" == *"npm cache directory (custom path)|/tmp/anteater-custom-npm-cache/_cacache/*"* ]]
+    [[ "$output" == *"npm npx cache (custom path)|/tmp/anteater-custom-npm-cache/_npx/*"* ]]
+    [[ "$output" == *"npm logs (custom path)|/tmp/anteater-custom-npm-cache/_logs/*"* ]]
+    [[ "$output" == *"npm prebuilds (custom path)|/tmp/anteater-custom-npm-cache/_prebuilds/*"* ]]
 }
 
 @test "clean_dev_npm falls back to default cache when npm path is invalid" {
@@ -239,7 +239,7 @@ bun() {
         return 0
     fi
     if [[ "$1" == "pm" && "$2" == "cache" ]]; then
-        echo "/tmp/mole-bun-cache"
+        echo "/tmp/anteater-bun-cache"
         return 0
     fi
     return 0
@@ -309,7 +309,7 @@ bun() {
         return 1
     fi
     if [[ "$1" == "pm" && "$2" == "cache" ]]; then
-        echo "/tmp/mole-bun-cache"
+        echo "/tmp/anteater-bun-cache"
         return 0
     fi
     return 0
@@ -319,7 +319,7 @@ clean_dev_npm
 EOF
 
     [ "$status" -eq 0 ]
-    [[ "$output" == *"Bun cache|/tmp/mole-bun-cache/*"* ]]
+    [[ "$output" == *"Bun cache|/tmp/anteater-bun-cache/*"* ]]
     [[ "$output" == *"Orphaned bun cache|$HOME/.bun/install/cache/*"* ]]
 }
 
@@ -385,7 +385,7 @@ EOF
     [ "$status" -eq 0 ]
     [[ "$output" == *"Docker unused data · skipped by default"* ]]
     [[ "$output" != *"whitelisted"* ]]
-    [[ "$output" != *"mo clean --whitelist"* ]]
+    [[ "$output" != *"aa clean --whitelist"* ]]
     [[ "$output" != *"docker called"* ]]
     [[ "$output" == *"Prune:  docker system prune"* ]]
 }

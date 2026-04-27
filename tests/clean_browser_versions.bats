@@ -11,8 +11,8 @@ setup_file() {
     export HOME
 
     # Prevent AppleScript permission dialogs during tests
-    MOLE_TEST_MODE=1
-    export MOLE_TEST_MODE
+    ANTEATER_TEST_MODE=1
+    export ANTEATER_TEST_MODE
 
     mkdir -p "$HOME"
 }
@@ -259,7 +259,7 @@ EOF
     ln -s "122.0.0.0" "$VERSIONS_DIR/Current"
 
     run env HOME="$HOME" PROJECT_ROOT="$PROJECT_ROOT" DRY_RUN=true \
-        MOLE_EDGE_APP_PATHS="$EDGE_APP" bash --noprofile --norc <<'EOF'
+        ANTEATER_EDGE_APP_PATHS="$EDGE_APP" bash --noprofile --norc <<'EOF'
 set -euo pipefail
 source "$PROJECT_ROOT/lib/core/common.sh"
 source "$PROJECT_ROOT/lib/clean/user.sh"
@@ -297,7 +297,7 @@ EOF
     ln -s "122.0.0.0" "$VERSIONS_DIR/Current"
 
     run env HOME="$TEST_HOME" PROJECT_ROOT="$PROJECT_ROOT" \
-        MOLE_EDGE_APP_PATHS="$EDGE_APP" bash --noprofile --norc <<'EOF'
+        ANTEATER_EDGE_APP_PATHS="$EDGE_APP" bash --noprofile --norc <<'EOF'
 set -euo pipefail
 source "$PROJECT_ROOT/lib/core/common.sh"
 source "$PROJECT_ROOT/lib/clean/user.sh"

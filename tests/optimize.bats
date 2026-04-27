@@ -88,7 +88,7 @@ EOF
 }
 
 @test "opt_system_maintenance reports DNS and Spotlight" {
-    run env HOME="$HOME" PROJECT_ROOT="$PROJECT_ROOT" MOLE_DRY_RUN=1 bash --noprofile --norc <<'EOF'
+    run env HOME="$HOME" PROJECT_ROOT="$PROJECT_ROOT" ANTEATER_DRY_RUN=1 bash --noprofile --norc <<'EOF'
 set -euo pipefail
 source "$PROJECT_ROOT/lib/core/common.sh"
 source "$PROJECT_ROOT/lib/optimize/tasks.sh"
@@ -103,7 +103,7 @@ EOF
 }
 
 @test "opt_network_optimization refreshes DNS" {
-    run env HOME="$HOME" PROJECT_ROOT="$PROJECT_ROOT" MOLE_DRY_RUN=1 bash --noprofile --norc <<'EOF'
+    run env HOME="$HOME" PROJECT_ROOT="$PROJECT_ROOT" ANTEATER_DRY_RUN=1 bash --noprofile --norc <<'EOF'
 set -euo pipefail
 source "$PROJECT_ROOT/lib/core/common.sh"
 source "$PROJECT_ROOT/lib/optimize/tasks.sh"
@@ -117,7 +117,7 @@ EOF
 }
 
 @test "opt_quarantine_cleanup reports clean when no database" {
-    run env HOME="$HOME" PROJECT_ROOT="$PROJECT_ROOT" MOLE_DRY_RUN=1 bash --noprofile --norc <<'EOF'
+    run env HOME="$HOME" PROJECT_ROOT="$PROJECT_ROOT" ANTEATER_DRY_RUN=1 bash --noprofile --norc <<'EOF'
 set -euo pipefail
 source "$PROJECT_ROOT/lib/core/common.sh"
 source "$PROJECT_ROOT/lib/optimize/tasks.sh"
@@ -129,7 +129,7 @@ EOF
 }
 
 @test "opt_quarantine_cleanup reports entries in dry-run" {
-    run env HOME="$HOME" PROJECT_ROOT="$PROJECT_ROOT" MOLE_DRY_RUN=1 bash --noprofile --norc <<'EOF'
+    run env HOME="$HOME" PROJECT_ROOT="$PROJECT_ROOT" ANTEATER_DRY_RUN=1 bash --noprofile --norc <<'EOF'
 set -euo pipefail
 source "$PROJECT_ROOT/lib/core/common.sh"
 source "$PROJECT_ROOT/lib/optimize/tasks.sh"
@@ -189,7 +189,7 @@ EOF
 }
 
 @test "opt_font_cache_rebuild succeeds in dry-run" {
-    run env HOME="$HOME" PROJECT_ROOT="$PROJECT_ROOT" MOLE_DRY_RUN=1 bash --noprofile --norc <<'EOF'
+    run env HOME="$HOME" PROJECT_ROOT="$PROJECT_ROOT" ANTEATER_DRY_RUN=1 bash --noprofile --norc <<'EOF'
 set -euo pipefail
 source "$PROJECT_ROOT/lib/core/common.sh"
 source "$PROJECT_ROOT/lib/optimize/tasks.sh"
@@ -255,7 +255,7 @@ EOF
 }
 
 @test "opt_dock_refresh clears cache files" {
-    run env HOME="$HOME" PROJECT_ROOT="$PROJECT_ROOT" MOLE_DRY_RUN=1 bash --noprofile --norc <<'EOF'
+    run env HOME="$HOME" PROJECT_ROOT="$PROJECT_ROOT" ANTEATER_DRY_RUN=1 bash --noprofile --norc <<'EOF'
 set -euo pipefail
 source "$PROJECT_ROOT/lib/core/common.sh"
 source "$PROJECT_ROOT/lib/optimize/tasks.sh"
@@ -271,7 +271,7 @@ EOF
 }
 
 @test "opt_prevent_network_dsstore dry-run reports enabled" {
-    run env HOME="$HOME" PROJECT_ROOT="$PROJECT_ROOT" MOLE_DRY_RUN=1 bash --noprofile --norc <<'EOF'
+    run env HOME="$HOME" PROJECT_ROOT="$PROJECT_ROOT" ANTEATER_DRY_RUN=1 bash --noprofile --norc <<'EOF'
 set -euo pipefail
 source "$PROJECT_ROOT/lib/core/common.sh"
 source "$PROJECT_ROOT/lib/optimize/tasks.sh"
@@ -370,7 +370,7 @@ EOF
 }
 
 @test "opt_launch_agents_cleanup reports healthy when no directory" {
-    run env HOME="$HOME" PROJECT_ROOT="$PROJECT_ROOT" MOLE_DRY_RUN=1 bash --noprofile --norc <<'EOF'
+    run env HOME="$HOME" PROJECT_ROOT="$PROJECT_ROOT" ANTEATER_DRY_RUN=1 bash --noprofile --norc <<'EOF'
 set -euo pipefail
 source "$PROJECT_ROOT/lib/core/common.sh"
 source "$PROJECT_ROOT/lib/optimize/tasks.sh"
@@ -382,7 +382,7 @@ EOF
 }
 
 @test "opt_launch_agents_cleanup detects broken agents" {
-    run env HOME="$HOME" PROJECT_ROOT="$PROJECT_ROOT" MOLE_DRY_RUN=1 bash --noprofile --norc <<'EOF'
+    run env HOME="$HOME" PROJECT_ROOT="$PROJECT_ROOT" ANTEATER_DRY_RUN=1 bash --noprofile --norc <<'EOF'
 set -euo pipefail
 source "$PROJECT_ROOT/lib/core/common.sh"
 source "$PROJECT_ROOT/lib/optimize/tasks.sh"
@@ -411,7 +411,7 @@ EOF
 }
 
 @test "opt_launch_agents_cleanup skips healthy agents" {
-    run env HOME="$HOME" PROJECT_ROOT="$PROJECT_ROOT" MOLE_DRY_RUN=1 bash --noprofile --norc <<'EOF'
+    run env HOME="$HOME" PROJECT_ROOT="$PROJECT_ROOT" ANTEATER_DRY_RUN=1 bash --noprofile --norc <<'EOF'
 set -euo pipefail
 source "$PROJECT_ROOT/lib/core/common.sh"
 source "$PROJECT_ROOT/lib/optimize/tasks.sh"
@@ -454,15 +454,15 @@ EOF
 }
 
 @test "opt_periodic_maintenance reports current when log is fresh" {
-    run env HOME="$HOME" PROJECT_ROOT="$PROJECT_ROOT" MOLE_DRY_RUN=1 bash --noprofile --norc <<'EOF'
+    run env HOME="$HOME" PROJECT_ROOT="$PROJECT_ROOT" ANTEATER_DRY_RUN=1 bash --noprofile --norc <<'EOF'
 set -euo pipefail
 source "$PROJECT_ROOT/lib/core/common.sh"
 source "$PROJECT_ROOT/lib/optimize/tasks.sh"
 periodic() { true; }
 export -f periodic
-tmplog="$(mktemp /tmp/mole-test-daily.XXXXXX)"
+tmplog="$(mktemp /tmp/anteater-test-daily.XXXXXX)"
 touch "$tmplog"
-MOLE_PERIODIC_LOG="$tmplog" opt_periodic_maintenance
+ANTEATER_PERIODIC_LOG="$tmplog" opt_periodic_maintenance
 rm -f "$tmplog"
 EOF
 
@@ -471,15 +471,15 @@ EOF
 }
 
 @test "opt_periodic_maintenance triggers in dry-run when log is stale" {
-    run env HOME="$HOME" PROJECT_ROOT="$PROJECT_ROOT" MOLE_DRY_RUN=1 bash --noprofile --norc <<'EOF'
+    run env HOME="$HOME" PROJECT_ROOT="$PROJECT_ROOT" ANTEATER_DRY_RUN=1 bash --noprofile --norc <<'EOF'
 set -euo pipefail
 source "$PROJECT_ROOT/lib/core/common.sh"
 source "$PROJECT_ROOT/lib/optimize/tasks.sh"
 periodic() { true; }
 export -f periodic
-tmplog="$(mktemp /tmp/mole-test-daily.XXXXXX)"
+tmplog="$(mktemp /tmp/anteater-test-daily.XXXXXX)"
 touch -t "$(date -v-10d +%Y%m%d%H%M.%S)" "$tmplog"
-MOLE_PERIODIC_LOG="$tmplog" opt_periodic_maintenance
+ANTEATER_PERIODIC_LOG="$tmplog" opt_periodic_maintenance
 rm -f "$tmplog"
 EOF
 
@@ -488,13 +488,13 @@ EOF
 }
 
 @test "opt_periodic_maintenance triggers in dry-run when log is missing" {
-    run env HOME="$HOME" PROJECT_ROOT="$PROJECT_ROOT" MOLE_DRY_RUN=1 bash --noprofile --norc <<'EOF'
+    run env HOME="$HOME" PROJECT_ROOT="$PROJECT_ROOT" ANTEATER_DRY_RUN=1 bash --noprofile --norc <<'EOF'
 set -euo pipefail
 source "$PROJECT_ROOT/lib/core/common.sh"
 source "$PROJECT_ROOT/lib/optimize/tasks.sh"
 periodic() { true; }
 export -f periodic
-MOLE_PERIODIC_LOG="/tmp/mole-test-nonexistent-daily.out" opt_periodic_maintenance
+ANTEATER_PERIODIC_LOG="/tmp/anteater-test-nonexistent-daily.out" opt_periodic_maintenance
 EOF
 
     [ "$status" -eq 0 ]

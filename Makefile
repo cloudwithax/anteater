@@ -1,4 +1,4 @@
-# Makefile for Mole
+# Makefile for Anteater
 
 .PHONY: all build clean release
 

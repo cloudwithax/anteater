@@ -1,5 +1,5 @@
 #!/bin/bash
-# Test runner for Mole.
+# Test runner for Anteater.
 # Runs unit, Go, and integration tests.
 # Exits non-zero on failures.
 
@@ -11,13 +11,13 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$PROJECT_ROOT"
 
 # Never allow the scripted test run to trigger real sudo or Touch ID prompts.
-export MOLE_TEST_NO_AUTH=1
+export ANTEATER_TEST_NO_AUTH=1
 
 # shellcheck source=lib/core/file_ops.sh
 source "$PROJECT_ROOT/lib/core/file_ops.sh"
 
 echo "==============================="
-echo "Mole Test Runner"
+echo "Anteater Test Runner"
 echo "==============================="
 echo ""
 
@@ -208,7 +208,7 @@ echo ""
 
 echo "3. Running Go tests..."
 if command -v go > /dev/null 2>&1; then
-    GO_TEST_CACHE="${MOLE_GO_TEST_CACHE:-/tmp/mole-go-build-cache}"
+    GO_TEST_CACHE="${ANTEATER_GO_TEST_CACHE:-/tmp/anteater-go-build-cache}"
     mkdir -p "$GO_TEST_CACHE"
     if GOCACHE="$GO_TEST_CACHE" go build ./... > /dev/null 2>&1 &&
         GOCACHE="$GO_TEST_CACHE" go vet ./cmd/... > /dev/null 2>&1 &&
@@ -234,7 +234,7 @@ echo ""
 
 echo "5. Running integration tests..."
 # Quick syntax check for main scripts
-if bash -n mole && bash -n bin/clean.sh && bash -n bin/optimize.sh; then
+if bash -n anteater && bash -n bin/clean.sh && bash -n bin/optimize.sh; then
     printf "${GREEN}${ICON_SUCCESS} Integration tests passed${NC}\n"
 else
     printf "${RED}${ICON_ERROR} Integration tests failed${NC}\n"
@@ -247,14 +247,14 @@ echo "6. Testing installation..."
 if [[ "$(uname -s)" != "Darwin" ]]; then
     printf "${YELLOW}${ICON_WARNING} Installation test skipped (non-macOS)${NC}\n"
 else
-    # Skip if Homebrew mole is installed (install.sh will refuse to overwrite)
+    # Skip if Homebrew anteater is installed (install.sh will refuse to overwrite)
     install_test_home=""
-    if command -v brew > /dev/null 2>&1 && brew list mole &> /dev/null; then
+    if command -v brew > /dev/null 2>&1 && brew list anteater &> /dev/null; then
         printf "${GREEN}${ICON_SUCCESS} Installation test skipped, Homebrew${NC}\n"
     else
-        install_test_home="$(mktemp -d /tmp/mole-test-home.XXXXXX 2> /dev/null || true)"
+        install_test_home="$(mktemp -d /tmp/anteater-test-home.XXXXXX 2> /dev/null || true)"
         if [[ -z "$install_test_home" ]]; then
-            install_test_home="/tmp/mole-test-home"
+            install_test_home="/tmp/anteater-test-home"
             mkdir -p "$install_test_home"
         fi
     fi
@@ -263,9 +263,9 @@ else
     elif HOME="$install_test_home" \
         XDG_CONFIG_HOME="$install_test_home/.config" \
         XDG_CACHE_HOME="$install_test_home/.cache" \
-        MO_NO_OPLOG=1 \
-        ./install.sh --prefix /tmp/mole-test > /dev/null 2>&1; then
-        if [[ -f "/tmp/mole-test/mole" ]]; then
+        AA_NO_OPLOG=1 \
+        ./install.sh --prefix /tmp/anteater-test > /dev/null 2>&1; then
+        if [[ -f "/tmp/anteater-test/anteater" ]]; then
             printf "${GREEN}${ICON_SUCCESS} Installation test passed${NC}\n"
         else
             printf "${RED}${ICON_ERROR} Installation test failed${NC}\n"
@@ -275,9 +275,9 @@ else
         printf "${RED}${ICON_ERROR} Installation test failed${NC}\n"
         ((FAILED++))
     fi
-    MO_NO_OPLOG=1 safe_remove "/tmp/mole-test" true || true
+    AA_NO_OPLOG=1 safe_remove "/tmp/anteater-test" true || true
     if [[ -n "$install_test_home" ]]; then
-        MO_NO_OPLOG=1 safe_remove "$install_test_home" true || true
+        AA_NO_OPLOG=1 safe_remove "$install_test_home" true || true
     fi
 fi
 echo ""

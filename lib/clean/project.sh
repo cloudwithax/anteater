@@ -1,5 +1,5 @@
 #!/bin/bash
-# Project Purge Module (mo purge).
+# Project Purge Module (aa purge).
 # Removes heavy project build artifacts and dependencies.
 set -euo pipefail
 
@@ -12,17 +12,17 @@ fi
 # shellcheck disable=SC1090
 source "$PROJECT_LIB_DIR/purge_shared.sh"
 
-readonly PURGE_TARGETS=("${MOLE_PURGE_TARGETS[@]}")
+readonly PURGE_TARGETS=("${ANTEATER_PURGE_TARGETS[@]}")
 # Minimum age in days before considering for cleanup.
 readonly MIN_AGE_DAYS=7
 # Scan depth defaults (relative to search root).
 readonly PURGE_MIN_DEPTH_DEFAULT=1
 readonly PURGE_MAX_DEPTH_DEFAULT=6
 # Search paths (default, can be overridden via config file).
-readonly DEFAULT_PURGE_SEARCH_PATHS=("${MOLE_PURGE_DEFAULT_SEARCH_PATHS[@]}")
+readonly DEFAULT_PURGE_SEARCH_PATHS=("${ANTEATER_PURGE_DEFAULT_SEARCH_PATHS[@]}")
 
 # Config file for custom purge paths.
-readonly PURGE_CONFIG_FILE="$HOME/.config/mole/purge_paths"
+readonly PURGE_CONFIG_FILE="$HOME/.config/anteater/purge_paths"
 
 # Resolved search paths.
 PURGE_SEARCH_PATHS=()
@@ -30,8 +30,8 @@ PURGE_CATEGORY_FULL_PATHS_ARRAY=()
 
 # Project indicators for container detection.
 # Monorepo indicators (higher priority)
-readonly MONOREPO_INDICATORS=("${MOLE_PURGE_MONOREPO_INDICATORS[@]}")
-readonly PROJECT_INDICATORS=("${MOLE_PURGE_PROJECT_INDICATORS[@]}")
+readonly MONOREPO_INDICATORS=("${ANTEATER_PURGE_MONOREPO_INDICATORS[@]}")
+readonly PROJECT_INDICATORS=("${ANTEATER_PURGE_PROJECT_INDICATORS[@]}")
 
 # Check if a directory contains projects (directly or in subdirectories).
 is_project_container() {
@@ -77,7 +77,7 @@ discover_project_dirs() {
         if [[ -d "$path" ]]; then
             # Resolve to canonical casing to avoid duplicates on
             # case-insensitive filesystems (macOS APFS).
-            discovered+=("$(mole_purge_resolve_path_case "$path")")
+            discovered+=("$(anteater_purge_resolve_path_case "$path")")
         fi
     done
 
@@ -87,7 +87,7 @@ discover_project_dirs() {
         [[ ! -d "$dir" ]] && continue
         dir="${dir%/}" # Remove trailing slash
         # Resolve casing so that ~/code and ~/Code compare equal.
-        dir=$(mole_purge_resolve_path_case "$dir")
+        dir=$(anteater_purge_resolve_path_case "$dir")
 
         local already_found=false
         for existing in "${discovered[@]+"${discovered[@]}"}"; do
@@ -121,7 +121,7 @@ write_purge_config() {
     prepare_purge_config_path
 
     local tmp_file
-    tmp_file=$(mktemp_file "mole-purge-paths") || return 1
+    tmp_file=$(mktemp_file "anteater-purge-paths") || return 1
 
     if ! cat > "$tmp_file" << EOF; then
 $header
@@ -131,7 +131,7 @@ EOF
     fi
 
     # Guard empty-array expansion under `set -u` on bash 3.2 (first-run case
-    # from `mo purge --paths` passes only the header with no paths).
+    # from `aa purge --paths` passes only the header with no paths).
     if [[ ${#paths[@]} -gt 0 ]]; then
         for path in "${paths[@]}"; do
             # Convert $HOME to ~ for portability
@@ -160,8 +160,8 @@ warn_purge_config_write_failure() {
 # Save discovered paths to config.
 save_discovered_paths() {
     local -a paths=("$@")
-    write_purge_config "# Mole Purge Paths - Auto-discovered project directories
-# Edit this file to customize, or run: mo purge --paths
+    write_purge_config "# Anteater Purge Paths - Auto-discovered project directories
+# Edit this file to customize, or run: aa purge --paths
 # Add one path per line (supports ~ for home directory)
 " "${paths[@]}"
 }
@@ -172,7 +172,7 @@ load_purge_config() {
 
     while IFS= read -r line; do
         [[ -n "$line" ]] && PURGE_SEARCH_PATHS+=("$line")
-    done < <(mole_purge_read_paths_config "$PURGE_CONFIG_FILE")
+    done < <(anteater_purge_read_paths_config "$PURGE_CONFIG_FILE")
 
     if [[ ${#PURGE_SEARCH_PATHS[@]} -eq 0 ]]; then
         if [[ -t 1 ]] && [[ -z "${_PURGE_DISCOVERY_SILENT:-}" ]]; then
@@ -254,7 +254,7 @@ compact_purge_menu_path() {
 # This is used to safely allow cleaning direct-child artifacts when
 # users configure a single project directory as a purge search path.
 is_purge_project_root() {
-    mole_purge_is_project_root "$1"
+    anteater_purge_is_project_root "$1"
 }
 
 # Args: $1 - path to check
@@ -422,7 +422,7 @@ scan_purge_targets() {
     fi
 
     # Update current scanning path
-    local stats_dir="${XDG_CACHE_HOME:-$HOME/.cache}/mole"
+    local stats_dir="${XDG_CACHE_HOME:-$HOME/.cache}/anteater"
     echo "$search_path" > "$stats_dir/purge_scanning" 2> /dev/null || true
 
     # Helper to process raw results
@@ -450,9 +450,9 @@ scan_purge_targets() {
 
     local use_find=true
 
-    # Allow forcing find via MO_USE_FIND environment variable
-    if [[ "${MO_USE_FIND:-0}" == "1" ]]; then
-        debug_log "MO_USE_FIND=1: Forcing find instead of fd"
+    # Allow forcing find via AA_USE_FIND environment variable
+    if [[ "${AA_USE_FIND:-0}" == "1" ]]; then
+        debug_log "AA_USE_FIND=1: Forcing find instead of fd"
         use_find=true
     elif command -v fd > /dev/null 2>&1; then
         # Escape regex special characters in target names for fd patterns (single sed pass)
@@ -582,7 +582,7 @@ get_dir_size_kb() {
         return
     fi
 
-    local timeout_seconds="${MO_PURGE_SIZE_TIMEOUT_SEC:-15}"
+    local timeout_seconds="${AA_PURGE_SIZE_TIMEOUT_SEC:-15}"
     if [[ ! "$timeout_seconds" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
         timeout_seconds=15
     fi
@@ -1000,7 +1000,7 @@ clean_project_artifacts() {
             rm -f "$temp" 2> /dev/null || true
         done
         # Clean up purge scanning file
-        local stats_dir="${XDG_CACHE_HOME:-$HOME/.cache}/mole"
+        local stats_dir="${XDG_CACHE_HOME:-$HOME/.cache}/anteater"
         rm -f "$stats_dir/purge_scanning" 2> /dev/null || true
         echo ""
         exit 130
@@ -1029,7 +1029,7 @@ clean_project_artifacts() {
     done
 
     # Stop the scanning monitor (removes purge_scanning file to signal completion)
-    local stats_dir="${XDG_CACHE_HOME:-$HOME/.cache}/mole"
+    local stats_dir="${XDG_CACHE_HOME:-$HOME/.cache}/anteater"
     rm -f "$stats_dir/purge_scanning" 2> /dev/null || true
 
     # Give monitor process time to exit and clear its output
@@ -1623,9 +1623,9 @@ clean_project_artifacts() {
 
     # Clean selected items
     echo ""
-    local stats_dir="${XDG_CACHE_HOME:-$HOME/.cache}/mole"
+    local stats_dir="${XDG_CACHE_HOME:-$HOME/.cache}/anteater"
     local cleaned_count=0
-    local dry_run_mode="${MOLE_DRY_RUN:-0}"
+    local dry_run_mode="${ANTEATER_DRY_RUN:-0}"
     for idx in "${selected_indices[@]}"; do
         local item_path="${item_paths[idx]}"
         local display_item_path

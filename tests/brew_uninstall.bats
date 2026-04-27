@@ -11,8 +11,8 @@ setup_file() {
     export HOME
 
     # Prevent AppleScript permission dialogs during tests
-    MOLE_TEST_MODE=1
-    export MOLE_TEST_MODE
+    ANTEATER_TEST_MODE=1
+    export ANTEATER_TEST_MODE
 }
 
 teardown_file() {
@@ -383,7 +383,7 @@ export -f run_with_timeout
 
 get_brew_cask_name() { echo "brew-dry-run-cask"; return 0; }
 
-export MOLE_DRY_RUN=1
+export ANTEATER_DRY_RUN=1
 selected_apps=("0|$HOME/Applications/BrewDryRun.app|BrewDryRun|com.example.brewdryrun|0|Never")
 mkdir -p "$HOME/Applications/BrewDryRun.app"
 files_cleaned=0

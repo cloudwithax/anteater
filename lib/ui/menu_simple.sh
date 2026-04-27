@@ -52,7 +52,7 @@ paginated_multi_select() {
     shift
     local -a items=("$@")
     local external_alt_screen=false
-    if [[ "${MOLE_MANAGED_ALT_SCREEN:-}" == "1" || "${MOLE_MANAGED_ALT_SCREEN:-}" == "true" ]]; then
+    if [[ "${ANTEATER_MANAGED_ALT_SCREEN:-}" == "1" || "${ANTEATER_MANAGED_ALT_SCREEN:-}" == "true" ]]; then
         external_alt_screen=true
     fi
 
@@ -73,8 +73,8 @@ paginated_multi_select() {
         selected[i]=false
     done
 
-    if [[ -n "${MOLE_PRESELECTED_INDICES:-}" ]]; then
-        local cleaned_preselect="${MOLE_PRESELECTED_INDICES//[[:space:]]/}"
+    if [[ -n "${ANTEATER_PRESELECTED_INDICES:-}" ]]; then
+        local cleaned_preselect="${ANTEATER_PRESELECTED_INDICES//[[:space:]]/}"
         local -a initial_indices=()
         IFS=',' read -ra initial_indices <<< "$cleaned_preselect"
         for idx in "${initial_indices[@]}"; do
@@ -300,7 +300,7 @@ paginated_multi_select() {
                 trap - EXIT INT TERM
 
                 # Store result in global variable
-                MOLE_SELECTION_RESULT="$final_result"
+                ANTEATER_SELECTION_RESULT="$final_result"
 
                 # Manually cleanup terminal before returning
                 restore_terminal

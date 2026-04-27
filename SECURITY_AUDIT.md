@@ -1,10 +1,10 @@
-# Mole Security Audit
+# Anteater Security Audit
 
-This document describes the security-relevant behavior of the current `main` branch. It is intended as a public description of Mole's safety boundaries, destructive-operation controls, release integrity signals, and known limitations.
+This document describes the security-relevant behavior of the current `main` branch. It is intended as a public description of Anteater's safety boundaries, destructive-operation controls, release integrity signals, and known limitations.
 
 ## Executive Summary
 
-Mole is a local system maintenance tool. Its main risk surface is not remote code execution; it is unintended local damage caused by cleanup, uninstall, optimize, purge, installer cleanup, or other destructive operations.
+Anteater is a local system maintenance tool. Its main risk surface is not remote code execution; it is unintended local damage caused by cleanup, uninstall, optimize, purge, installer cleanup, or other destructive operations.
 
 The project is designed around safety-first defaults:
 
@@ -14,7 +14,7 @@ The project is designed around safety-first defaults:
 - symlink handling is conservative
 - preview, confirmation, timeout, and operation logging are used to make destructive behavior more visible and auditable
 
-Mole prioritizes bounded cleanup over aggressive cleanup. When uncertainty exists, the tool should refuse, skip, or require stronger confirmation instead of widening deletion scope.
+Anteater prioritizes bounded cleanup over aggressive cleanup. When uncertainty exists, the tool should refuse, skip, or require stronger confirmation instead of widening deletion scope.
 
 The project continues to strengthen:
 
@@ -24,7 +24,7 @@ The project continues to strengthen:
 
 ## Threat Surface
 
-The highest-risk areas in Mole are:
+The highest-risk areas in Anteater are:
 
 - direct file and directory deletion
 - recursive cleanup across common user and system cache locations
@@ -33,7 +33,7 @@ The highest-risk areas in Mole are:
 - elevated cleanup paths that require sudo
 - release, install, and update trust signals for distributed artifacts
 
-`mo analyze` is intentionally lower-risk than cleanup flows:
+`aa analyze` is intentionally lower-risk than cleanup flows:
 
 - it does not require sudo
 - it respects normal user permissions and SIP
@@ -135,7 +135,7 @@ See [`journal/2026-03-11-safe-remove-design.md`](journal/2026-03-11-safe-remove-
 
 ## Protected Directories and Categories
 
-Mole has explicit protected-path and protected-category logic in addition to root-path blocking.
+Anteater has explicit protected-path and protected-category logic in addition to root-path blocking.
 
 Protected or conservatively handled categories include:
 
@@ -181,11 +181,11 @@ Path traversal handling is also explicit:
 - non-absolute paths are rejected for destructive helpers
 - `..` is rejected when it appears as a path component
 - legitimate names containing `..` inside a single path element remain allowed to avoid false positives for real application data
-- `mo analyze` delete validates the raw user-supplied path before `filepath.Abs` resolves it, then validates the resolved absolute path a second time, closing a window where traversal segments could survive `Abs` normalization
+- `aa analyze` delete validates the raw user-supplied path before `filepath.Abs` resolves it, then validates the resolved absolute path a second time, closing a window where traversal segments could survive `Abs` normalization
 
 ## Privilege Escalation and Sudo Boundaries
 
-Mole uses sudo for a subset of system-maintenance paths, but elevated behavior is still bounded by validation and protected-path rules.
+Anteater uses sudo for a subset of system-maintenance paths, but elevated behavior is still bounded by validation and protected-path rules.
 
 Key properties:
 
@@ -197,11 +197,11 @@ Key properties:
 - authentication, SIP/MDM, and read-only filesystem failures are classified separately in file-operation results
 - sudo credential prompting passes through the system's native PAM prompt rather than a hardcoded string, ensuring correct behavior across locales and PAM configurations
 
-When sudo is denied or unavailable, Mole prefers skipping privileged cleanup to forcing execution through unsafe fallback behavior.
+When sudo is denied or unavailable, Anteater prefers skipping privileged cleanup to forcing execution through unsafe fallback behavior.
 
 ## Sensitive Data Exclusions
 
-Mole is not intended to aggressively delete high-value user data.
+Anteater is not intended to aggressively delete high-value user data.
 
 Examples of conservative handling include:
 
@@ -223,7 +223,7 @@ This reduces the risk of incorrectly classifying active software as orphaned dat
 
 ## Dry-Run, Confirmation, and Audit Logging
 
-Mole exposes multiple safety controls before and during destructive actions:
+Anteater exposes multiple safety controls before and during destructive actions:
 
 - `--dry-run` previews are available for major destructive commands
 - dry-run output deduplicates targets by filesystem identity (device+inode), so aliased paths and symlinks do not appear as separate items
@@ -231,7 +231,7 @@ Mole exposes multiple safety controls before and during destructive actions:
 - purge marks recent projects conservatively and leaves them unselected by default
 - purge configuration is written atomically (mktemp then rename) to prevent partial writes if the process is interrupted
 - analyzer delete uses Finder Trash rather than direct permanent removal
-- operation logs are written to `~/Library/Logs/mole/operations.log` unless disabled with `MO_NO_OPLOG=1`
+- operation logs are written to `~/Library/Logs/anteater/operations.log` unless disabled with `AA_NO_OPLOG=1`
 - timeouts bound external commands so stalled discovery or uninstall operations do not silently hang the entire flow
 
 Relevant timeout behavior includes:
@@ -243,7 +243,7 @@ Relevant timeout behavior includes:
 
 ## Release Integrity and Continuous Security Signals
 
-Mole treats release trust as part of its security posture, not just a packaging detail.
+Anteater treats release trust as part of its security posture, not just a packaging detail.
 
 Repository-level signals include:
 
@@ -286,7 +286,7 @@ Key coverage areas include:
 ## Known Limitations and Future Work
 
 - Cleanup is destructive. Most cleanup and uninstall flows do not provide undo.
-- `mo analyze` delete is safer because it uses Trash, but other cleanup flows are permanent once confirmed.
+- `aa analyze` delete is safer because it uses Trash, but other cleanup flows are permanent once confirmed.
 - Generic orphan data waits 30 days before cleanup; this is conservative but heuristic.
 - Claude VM orphan cleanup waits 7 days before cleanup; this is also heuristic.
 - Time Machine safety windows are hour-based and intentionally conservative.

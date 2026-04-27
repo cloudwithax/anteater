@@ -11,7 +11,7 @@ show_suggestions() {
     local -a auto_fix_items=()
     local -a manual_items=()
     local skip_security_autofix=false
-    if [[ "${MOLE_SECURITY_FIXES_SHOWN:-}" == "true" ]]; then
+    if [[ "${ANTEATER_SECURITY_FIXES_SHOWN:-}" == "true" ]]; then
         skip_security_autofix=true
     fi
 
@@ -44,7 +44,7 @@ show_suggestions() {
     if [[ -n "${CACHE_SIZE_GB:-}" ]]; then
         local cache_gb="${CACHE_SIZE_GB:-0}"
         if (($(echo "$cache_gb > 5" | bc -l 2> /dev/null || echo 0))); then
-            manual_items+=("Free up ${cache_gb}GB by cleaning caches|Run: mo clean")
+            manual_items+=("Free up ${cache_gb}GB by cleaning caches|Run: aa clean")
             has_suggestions=true
         fi
     fi
@@ -56,7 +56,7 @@ show_suggestions() {
 
     if [[ -n "${DISK_FREE_GB:-}" && "${DISK_FREE_GB:-0}" -lt 50 ]]; then
         if [[ -z "${CACHE_SIZE_GB:-}" ]] || (($(echo "${CACHE_SIZE_GB:-0} <= 5" | bc -l 2> /dev/null || echo 1))); then
-            manual_items+=("Low disk space, ${DISK_FREE_GB}GB free|Run: mo analyze to find large files")
+            manual_items+=("Low disk space, ${DISK_FREE_GB}GB free|Run: aa analyze to find large files")
             has_suggestions=true
         fi
     fi

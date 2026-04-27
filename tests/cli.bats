@@ -35,7 +35,7 @@ setup_file() {
 }
 
 teardown_file() {
-	rm -rf "$HOME/.config/mole"
+	rm -rf "$HOME/.config/anteater"
 	rm -rf "$HOME"
 	if [[ -n "${ORIGINAL_HOME:-}" ]]; then
 		export HOME="$ORIGINAL_HOME"
@@ -68,45 +68,45 @@ SCRIPT
 }
 
 setup() {
-	rm -rf "$HOME/.config/mole"
-	mkdir -p "$HOME/.config/mole"
+	rm -rf "$HOME/.config/anteater"
+	mkdir -p "$HOME/.config/anteater"
 }
 
-@test "mole --help prints command overview" {
-	run env HOME="$HOME" "$PROJECT_ROOT/mole" --help
+@test "anteater --help prints command overview" {
+	run env HOME="$HOME" "$PROJECT_ROOT/anteater" --help
 	[ "$status" -eq 0 ]
-	[[ "$output" == *"mo clean"* ]]
-	[[ "$output" == *"mo analyze"* ]]
+	[[ "$output" == *"aa clean"* ]]
+	[[ "$output" == *"aa analyze"* ]]
 }
 
-@test "mole --version reports script version" {
-	expected_version="$(grep '^VERSION=' "$PROJECT_ROOT/mole" | head -1 | sed 's/VERSION=\"\(.*\)\"/\1/')"
-	run env HOME="$HOME" "$PROJECT_ROOT/mole" --version
+@test "anteater --version reports script version" {
+	expected_version="$(grep '^VERSION=' "$PROJECT_ROOT/anteater" | head -1 | sed 's/VERSION=\"\(.*\)\"/\1/')"
+	run env HOME="$HOME" "$PROJECT_ROOT/anteater" --version
 	[ "$status" -eq 0 ]
 	[[ "$output" == *"$expected_version"* ]]
 }
 
-@test "mole --version shows nightly channel metadata" {
-	expected_version="$(grep '^VERSION=' "$PROJECT_ROOT/mole" | head -1 | sed 's/VERSION=\"\(.*\)\"/\1/')"
-	mkdir -p "$HOME/.config/mole"
-	cat > "$HOME/.config/mole/install_channel" <<'EOF'
+@test "anteater --version shows nightly channel metadata" {
+	expected_version="$(grep '^VERSION=' "$PROJECT_ROOT/anteater" | head -1 | sed 's/VERSION=\"\(.*\)\"/\1/')"
+	mkdir -p "$HOME/.config/anteater"
+	cat > "$HOME/.config/anteater/install_channel" <<'EOF'
 CHANNEL=nightly
 EOF
 
-	run env HOME="$HOME" "$PROJECT_ROOT/mole" --version
+	run env HOME="$HOME" "$PROJECT_ROOT/anteater" --version
 	[ "$status" -eq 0 ]
-	[[ "$output" == *"Mole version $expected_version"* ]]
+	[[ "$output" == *"Anteater version $expected_version"* ]]
 	[[ "$output" == *"Channel: Nightly"* ]]
 }
 
-@test "mole unknown command returns error" {
-	run env HOME="$HOME" "$PROJECT_ROOT/mole" unknown-command
+@test "anteater unknown command returns error" {
+	run env HOME="$HOME" "$PROJECT_ROOT/anteater" unknown-command
 	[ "$status" -ne 0 ]
 	[[ "$output" == *"Unknown command: unknown-command"* ]]
 }
 
-@test "mole uninstall --whitelist returns unsupported option error" {
-	run env HOME="$HOME" "$PROJECT_ROOT/mole" uninstall --whitelist
+@test "anteater uninstall --whitelist returns unsupported option error" {
+	run env HOME="$HOME" "$PROJECT_ROOT/anteater" uninstall --whitelist
 	[ "$status" -ne 0 ]
 	[[ "$output" == *"Unknown uninstall option: --whitelist"* ]]
 }
@@ -115,8 +115,8 @@ EOF
 	run bash --noprofile --norc <<'EOF'
 set -euo pipefail
 HOME="$(mktemp -d)"
-export HOME MOLE_TEST_MODE=1 MOLE_SKIP_MAIN=1
-source "$PROJECT_ROOT/mole"
+export HOME ANTEATER_TEST_MODE=1 ANTEATER_SKIP_MAIN=1
+source "$PROJECT_ROOT/anteater"
 show_brand_banner() { printf 'banner\n'; }
 show_menu_option() { printf '%s' "$2"; }
 MAIN_MENU_BANNER=""
@@ -133,14 +133,14 @@ EOF
 	run bash --noprofile --norc <<'EOF'
 set -euo pipefail
 HOME="$(mktemp -d)"
-export HOME MOLE_TEST_MODE=1 MOLE_SKIP_MAIN=1
-source "$PROJECT_ROOT/mole"
+export HOME ANTEATER_TEST_MODE=1 ANTEATER_SKIP_MAIN=1
+source "$PROJECT_ROOT/anteater"
 show_brand_banner() { :; }
 show_main_menu() { :; }
 hide_cursor() { :; }
 show_cursor() { :; }
 clear() { :; }
-update_mole() { echo "UPDATE_CALLED"; }
+update_anteater() { echo "UPDATE_CALLED"; }
 state_file="$HOME/read_key_state"
 read_key() {
     if [[ ! -f "$state_file" ]]; then
@@ -161,16 +161,16 @@ EOF
 	run bash --noprofile --norc <<'EOF'
 set -euo pipefail
 HOME="$(mktemp -d)"
-export HOME MOLE_TEST_MODE=1 MOLE_SKIP_MAIN=1
-mkdir -p "$HOME/.cache/mole"
-printf 'update available\n' > "$HOME/.cache/mole/update_message"
-source "$PROJECT_ROOT/mole"
+export HOME ANTEATER_TEST_MODE=1 ANTEATER_SKIP_MAIN=1
+mkdir -p "$HOME/.cache/anteater"
+printf 'update available\n' > "$HOME/.cache/anteater/update_message"
+source "$PROJECT_ROOT/anteater"
 show_brand_banner() { :; }
 show_main_menu() { :; }
 hide_cursor() { :; }
 show_cursor() { :; }
 clear() { :; }
-update_mole() { echo "UPDATE_CALLED"; }
+update_anteater() { echo "UPDATE_CALLED"; }
 read_key() { echo "UPDATE"; }
 interactive_main_menu
 EOF
@@ -180,17 +180,17 @@ EOF
 }
 
 @test "touchid status reports current configuration" {
-	run env HOME="$HOME" "$PROJECT_ROOT/mole" touchid status
+	run env HOME="$HOME" "$PROJECT_ROOT/anteater" touchid status
 	[ "$status" -eq 0 ]
 	[[ "$output" == *"Touch ID"* ]]
 }
 
-@test "mo optimize command is recognized" {
-	run bash -c "grep -Eq '\"optimi[sz]e\"[[:space:]]*\\|[[:space:]]*\"optimi[sz]e\"' '$PROJECT_ROOT/mole'"
+@test "aa optimize command is recognized" {
+	run bash -c "grep -Eq '\"optimi[sz]e\"[[:space:]]*\\|[[:space:]]*\"optimi[sz]e\"' '$PROJECT_ROOT/anteater'"
 	[ "$status" -eq 0 ]
 }
 
-@test "mo analyze binary is valid" {
+@test "aa analyze binary is valid" {
 	if [[ -f "$PROJECT_ROOT/bin/analyze-go" ]]; then
 		[ -x "$PROJECT_ROOT/bin/analyze-go" ]
 		run file "$PROJECT_ROOT/bin/analyze-go"
@@ -200,35 +200,35 @@ EOF
 	fi
 }
 
-@test "mo clean --debug creates debug log file" {
-	mkdir -p "$HOME/.config/mole"
-	run env HOME="$HOME" TERM="xterm-256color" MOLE_TEST_MODE=1 MO_DEBUG=1 "$PROJECT_ROOT/mole" clean --dry-run
+@test "aa clean --debug creates debug log file" {
+	mkdir -p "$HOME/.config/anteater"
+	run env HOME="$HOME" TERM="xterm-256color" ANTEATER_TEST_MODE=1 AA_DEBUG=1 "$PROJECT_ROOT/anteater" clean --dry-run
 	[ "$status" -eq 0 ]
-	MOLE_OUTPUT="$output"
+	ANTEATER_OUTPUT="$output"
 
-	DEBUG_LOG="$HOME/Library/Logs/mole/mole_debug_session.log"
+	DEBUG_LOG="$HOME/Library/Logs/anteater/anteater_debug_session.log"
 	[ -f "$DEBUG_LOG" ]
 
-	run grep "Mole Debug Session" "$DEBUG_LOG"
+	run grep "Anteater Debug Session" "$DEBUG_LOG"
 	[ "$status" -eq 0 ]
 
-	[[ "$MOLE_OUTPUT" =~ "Debug session log saved to" ]]
+	[[ "$ANTEATER_OUTPUT" =~ "Debug session log saved to" ]]
 }
 
-@test "mo clean without debug does not show debug log path" {
-	mkdir -p "$HOME/.config/mole"
-	run env HOME="$HOME" TERM="xterm-256color" MOLE_TEST_MODE=1 MO_DEBUG=0 "$PROJECT_ROOT/mole" clean --dry-run
+@test "aa clean without debug does not show debug log path" {
+	mkdir -p "$HOME/.config/anteater"
+	run env HOME="$HOME" TERM="xterm-256color" ANTEATER_TEST_MODE=1 AA_DEBUG=0 "$PROJECT_ROOT/anteater" clean --dry-run
 	[ "$status" -eq 0 ]
 
 	[[ "$output" != *"Debug session log saved to"* ]]
 }
 
-@test "mo clean --debug logs system info" {
-	mkdir -p "$HOME/.config/mole"
-	run env HOME="$HOME" TERM="xterm-256color" MOLE_TEST_MODE=1 MO_DEBUG=1 "$PROJECT_ROOT/mole" clean --dry-run
+@test "aa clean --debug logs system info" {
+	mkdir -p "$HOME/.config/anteater"
+	run env HOME="$HOME" TERM="xterm-256color" ANTEATER_TEST_MODE=1 AA_DEBUG=1 "$PROJECT_ROOT/anteater" clean --dry-run
 	[ "$status" -eq 0 ]
 
-	DEBUG_LOG="$HOME/Library/Logs/mole/mole_debug_session.log"
+	DEBUG_LOG="$HOME/Library/Logs/anteater/anteater_debug_session.log"
 
 	run grep "User:" "$DEBUG_LOG"
 	[ "$status" -eq 0 ]
@@ -237,20 +237,20 @@ EOF
 	[ "$status" -eq 0 ]
 }
 
-@test "mo clean --help includes external volume option" {
-	run env HOME="$HOME" "$PROJECT_ROOT/mole" clean --help
+@test "aa clean --help includes external volume option" {
+	run env HOME="$HOME" "$PROJECT_ROOT/anteater" clean --help
 	[ "$status" -eq 0 ]
 	[[ "$output" == *"--external PATH"* ]]
 	[[ "$output" == *"already-uninstalled apps"* ]]
 }
 
-@test "mo uninstall --help directs leftover-only cleanup to clean" {
-	run env HOME="$HOME" "$PROJECT_ROOT/mole" uninstall --help
+@test "aa uninstall --help directs leftover-only cleanup to clean" {
+	run env HOME="$HOME" "$PROJECT_ROOT/anteater" uninstall --help
 	[ "$status" -eq 0 ]
-	[[ "$output" == *"already gone, use mo clean"* ]]
+	[[ "$output" == *"already gone, use aa clean"* ]]
 }
 
-@test "mo clean --external accepts canonicalized custom root" {
+@test "aa clean --external accepts canonicalized custom root" {
 	real_root="$(mktemp -d "$HOME/ext-real.XXXXXX")"
 	link_root="$HOME/ext-link"
 	ln -s "$real_root" "$link_root"
@@ -265,8 +265,8 @@ exit 0
 EOF
 	chmod +x "$mock_bin/diskutil"
 
-	run env HOME="$HOME" PATH="$mock_bin:$PATH" MOLE_EXTERNAL_VOLUMES_ROOT="$link_root" \
-		MOLE_TEST_NO_AUTH=1 "$PROJECT_ROOT/mole" clean --external "$link_root/USB" --dry-run
+	run env HOME="$HOME" PATH="$mock_bin:$PATH" ANTEATER_EXTERNAL_VOLUMES_ROOT="$link_root" \
+		ANTEATER_TEST_NO_AUTH=1 "$PROJECT_ROOT/anteater" clean --external "$link_root/USB" --dry-run
 	[ "$status" -eq 0 ]
 	[[ "$output" == *"Clean External Volume"* ]]
 	[[ "$output" == *"External volume cleanup"* ]]
@@ -278,7 +278,7 @@ EOF
 auth       sufficient     pam_opendirectory.so
 EOF
 
-	run env MOLE_PAM_SUDO_FILE="$pam_file" "$PROJECT_ROOT/bin/touchid.sh" status
+	run env ANTEATER_PAM_SUDO_FILE="$pam_file" "$PROJECT_ROOT/bin/touchid.sh" status
 	[ "$status" -eq 0 ]
 	[[ "$output" == *"not configured"* ]]
 
@@ -286,7 +286,7 @@ EOF
 auth       sufficient     pam_tid.so
 EOF
 
-	run env MOLE_PAM_SUDO_FILE="$pam_file" "$PROJECT_ROOT/bin/touchid.sh" status
+	run env ANTEATER_PAM_SUDO_FILE="$pam_file" "$PROJECT_ROOT/bin/touchid.sh" status
 	[ "$status" -eq 0 ]
 	[[ "$output" == *"enabled"* ]]
 }
@@ -300,10 +300,10 @@ EOF
 	fake_bin="$HOME/fake-bin"
 	create_fake_utils "$fake_bin"
 
-	run env PATH="$fake_bin:$PATH" MOLE_PAM_SUDO_FILE="$pam_file" "$PROJECT_ROOT/bin/touchid.sh" enable
+	run env PATH="$fake_bin:$PATH" ANTEATER_PAM_SUDO_FILE="$pam_file" "$PROJECT_ROOT/bin/touchid.sh" enable
 	[ "$status" -eq 0 ]
 	grep -q "pam_tid.so" "$pam_file"
-	[[ -f "${pam_file}.mole-backup" ]]
+	[[ -f "${pam_file}.anteater-backup" ]]
 }
 
 @test "disable_touchid removes pam_tid line" {
@@ -316,7 +316,7 @@ EOF
 	fake_bin="$HOME/fake-bin-disable"
 	create_fake_utils "$fake_bin"
 
-	run env PATH="$fake_bin:$PATH" MOLE_PAM_SUDO_FILE="$pam_file" "$PROJECT_ROOT/bin/touchid.sh" disable
+	run env PATH="$fake_bin:$PATH" ANTEATER_PAM_SUDO_FILE="$pam_file" "$PROJECT_ROOT/bin/touchid.sh" disable
 	[ "$status" -eq 0 ]
 	run grep "pam_tid.so" "$pam_file"
 	[ "$status" -ne 0 ]
@@ -328,7 +328,7 @@ EOF
 auth       sufficient     pam_opendirectory.so
 EOF
 
-	run env MOLE_PAM_SUDO_FILE="$pam_file" "$PROJECT_ROOT/bin/touchid.sh" enable --dry-run
+	run env ANTEATER_PAM_SUDO_FILE="$pam_file" "$PROJECT_ROOT/bin/touchid.sh" enable --dry-run
 	[ "$status" -eq 0 ]
 	[[ "$output" == *"DRY RUN MODE"* ]]
 
@@ -338,7 +338,7 @@ EOF
 
 # --- JSON output mode tests ---
 
-@test "mo analyze --json outputs valid JSON with expected fields" {
+@test "aa analyze --json outputs valid JSON with expected fields" {
 	if [[ ! -x "${ANALYZE_BIN:-}" ]]; then
 		skip "analyze binary not available (go not installed?)"
 	fi
@@ -362,7 +362,7 @@ assert isinstance(data['entries'], list), 'entries is not a list'
 "
 }
 
-@test "mo analyze --json entries contain required fields" {
+@test "aa analyze --json entries contain required fields" {
 	if [[ ! -x "${ANALYZE_BIN:-}" ]]; then
 		skip "analyze binary not available (go not installed?)"
 	fi
@@ -382,7 +382,7 @@ for entry in data['entries']:
 "
 }
 
-@test "mo analyze --json path reflects target directory" {
+@test "aa analyze --json path reflects target directory" {
 	if [[ ! -x "${ANALYZE_BIN:-}" ]]; then
 		skip "analyze binary not available (go not installed?)"
 	fi
@@ -398,7 +398,7 @@ assert data['path'] == '/tmp' or data['path'] == '/private/tmp', \
 "
 }
 
-@test "mo analyze --json overview mode returns expected schema" {
+@test "aa analyze --json overview mode returns expected schema" {
 	if [[ ! -x "${ANALYZE_BIN:-}" ]]; then
 		skip "analyze binary not available (go not installed?)"
 	fi
@@ -418,7 +418,7 @@ assert isinstance(data['entries'], list), 'entries is not a list'
 "
 }
 
-@test "mo status --json outputs valid JSON with expected fields" {
+@test "aa status --json outputs valid JSON with expected fields" {
 	if [[ ! -x "${STATUS_BIN:-}" ]]; then
 		skip "status binary not available (go not installed?)"
 	fi
@@ -438,7 +438,7 @@ for key in ['cpu', 'memory', 'disks', 'health_score', 'host', 'uptime']:
 "
 }
 
-@test "mo status --json cpu section has expected structure" {
+@test "aa status --json cpu section has expected structure" {
 	if [[ ! -x "${STATUS_BIN:-}" ]]; then
 		skip "status binary not available (go not installed?)"
 	fi
@@ -456,7 +456,7 @@ assert isinstance(cpu['usage'], (int, float)), 'cpu usage is not a number'
 "
 }
 
-@test "mo status --json memory section has expected structure" {
+@test "aa status --json memory section has expected structure" {
 	if [[ ! -x "${STATUS_BIN:-}" ]]; then
 		skip "status binary not available (go not installed?)"
 	fi
@@ -475,7 +475,7 @@ assert mem['total'] > 0, 'memory total should be positive'
 "
 }
 
-@test "mo status --json piped to stdout auto-detects JSON mode" {
+@test "aa status --json piped to stdout auto-detects JSON mode" {
 	if [[ ! -x "${STATUS_BIN:-}" ]]; then
 		skip "status binary not available (go not installed?)"
 	fi

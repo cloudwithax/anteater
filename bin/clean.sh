@@ -1,5 +1,5 @@
 #!/bin/bash
-# Mole - Clean command.
+# Anteater - Clean command.
 # Runs cleanup modules with optional sudo.
 # Supports dry-run and whitelist.
 
@@ -27,7 +27,7 @@ PROTECT_FINDER_METADATA=false
 EXTERNAL_VOLUME_TARGET=""
 IS_M_SERIES=$([[ "$(uname -m)" == "arm64" ]] && echo "true" || echo "false")
 
-EXPORT_LIST_FILE="$HOME/.config/mole/clean-list.txt"
+EXPORT_LIST_FILE="$HOME/.config/anteater/clean-list.txt"
 CURRENT_SECTION=""
 readonly PROTECTED_SW_DOMAINS=(
     # Web editors
@@ -56,7 +56,7 @@ readonly PROTECTED_SW_DOMAINS=(
 
 declare -a WHITELIST_PATTERNS=()
 WHITELIST_WARNINGS=()
-if [[ -f "$HOME/.config/mole/whitelist" ]]; then
+if [[ -f "$HOME/.config/anteater/whitelist" ]]; then
     while IFS= read -r line; do
         # shellcheck disable=SC2295
         line="${line#"${line%%[![:space:]]*}"}"
@@ -107,7 +107,7 @@ if [[ -f "$HOME/.config/mole/whitelist" ]]; then
         fi
         [[ "$duplicate" == "true" ]] && continue
         WHITELIST_PATTERNS+=("$line")
-    done < "$HOME/.config/mole/whitelist"
+    done < "$HOME/.config/anteater/whitelist"
 else
     WHITELIST_PATTERNS=("${DEFAULT_WHITELIST_PATTERNS[@]}")
 fi
@@ -162,9 +162,9 @@ note_activity() {
 register_dry_run_cleanup_target() {
     local path="$1"
     local identity
-    identity=$(mole_path_identity "$path")
+    identity=$(anteater_path_identity "$path")
 
-    if [[ ${#DRY_RUN_SEEN_IDENTITIES[@]} -gt 0 ]] && mole_identity_in_list "$identity" "${DRY_RUN_SEEN_IDENTITIES[@]}"; then
+    if [[ ${#DRY_RUN_SEEN_IDENTITIES[@]} -gt 0 ]] && anteater_identity_in_list "$identity" "${DRY_RUN_SEEN_IDENTITIES[@]}"; then
         return 1
     fi
 
@@ -434,13 +434,13 @@ safe_clean() {
     local total_count=0
     local skipped_count=0
     local removal_failed_count=0
-    local permission_start=${MOLE_PERMISSION_DENIED_COUNT:-0}
+    local permission_start=${ANTEATER_PERMISSION_DENIED_COUNT:-0}
 
     local show_scan_feedback=false
     if [[ ${#targets[@]} -gt 20 && -t 1 ]]; then
         show_scan_feedback=true
         stop_section_spinner
-        MOLE_SPINNER_PREFIX="  " start_inline_spinner "Scanning ${#targets[@]} items..."
+        ANTEATER_SPINNER_PREFIX="  " start_inline_spinner "Scanning ${#targets[@]} items..."
     fi
 
     local -a existing_paths=()
@@ -476,7 +476,7 @@ safe_clean() {
     debug_log "Cleaning: $description, ${#existing_paths[@]} items"
 
     # Enhanced debug output with risk level and details
-    if [[ "${MO_DEBUG:-}" == "1" && ${#existing_paths[@]} -gt 0 ]]; then
+    if [[ "${AA_DEBUG:-}" == "1" && ${#existing_paths[@]} -gt 0 ]]; then
         # Determine risk level for this cleanup operation
         local risk_info
         risk_info=$(classify_cleanup_risk "$description" "${existing_paths[0]}")
@@ -520,7 +520,7 @@ safe_clean() {
     if [[ ${#existing_paths[@]} -gt 10 ]]; then
         show_spinner=true
         local total_paths=${#existing_paths[@]}
-        if [[ -t 1 ]]; then MOLE_SPINNER_PREFIX="  " start_inline_spinner "Scanning items..."; fi
+        if [[ -t 1 ]]; then ANTEATER_SPINNER_PREFIX="  " start_inline_spinner "Scanning items..."; fi
     fi
 
     local cleaning_spinner_started=false
@@ -542,7 +542,7 @@ safe_clean() {
         # Heuristic: mostly files -> sequential stat is faster than subshells.
         if [[ $dir_count -lt 5 && ${#existing_paths[@]} -gt 20 ]]; then
             if [[ -t 1 && "$show_spinner" == "false" ]]; then
-                MOLE_SPINNER_PREFIX="  " start_inline_spinner "Scanning items..."
+                ANTEATER_SPINNER_PREFIX="  " start_inline_spinner "Scanning items..."
                 show_spinner=true
             fi
 
@@ -591,7 +591,7 @@ safe_clean() {
                     pids+=($!)
                     idx=$((idx + 1))
 
-                    if ((${#pids[@]} >= MOLE_MAX_PARALLEL_JOBS)); then
+                    if ((${#pids[@]} >= ANTEATER_MAX_PARALLEL_JOBS)); then
                         wait "${pids[0]}" 2> /dev/null || true
                         pids=("${pids[@]:1}")
                         completed=$((completed + 1))
@@ -618,7 +618,7 @@ safe_clean() {
         # Read results back in original order.
         # Start spinner for cleaning phase
         if [[ "$DRY_RUN" != "true" && ${#existing_paths[@]} -gt 0 && -t 1 ]]; then
-            MOLE_SPINNER_PREFIX="  " start_inline_spinner "Cleaning..."
+            ANTEATER_SPINNER_PREFIX="  " start_inline_spinner "Cleaning..."
             cleaning_spinner_started=true
         fi
         idx=0
@@ -655,7 +655,7 @@ safe_clean() {
     else
         # Start spinner for cleaning phase (small batch)
         if [[ "$DRY_RUN" != "true" && ${#existing_paths[@]} -gt 0 && -t 1 ]]; then
-            MOLE_SPINNER_PREFIX="  " start_inline_spinner "Cleaning..."
+            ANTEATER_SPINNER_PREFIX="  " start_inline_spinner "Cleaning..."
             cleaning_spinner_started=true
         fi
         local idx=0
@@ -694,7 +694,7 @@ safe_clean() {
         stop_inline_spinner
     fi
 
-    local permission_end=${MOLE_PERMISSION_DENIED_COUNT:-0}
+    local permission_end=${ANTEATER_PERMISSION_DENIED_COUNT:-0}
     # Track permission failures in debug output (avoid noisy user warnings).
     if [[ $permission_end -gt $permission_start && $removed_any -eq 0 ]]; then
         debug_log "Permission denied while cleaning: $description"
@@ -791,7 +791,7 @@ safe_clean() {
 
 start_cleanup() {
     # Set current command for operation logging
-    export MOLE_CURRENT_COMMAND="clean"
+    export ANTEATER_CURRENT_COMMAND="clean"
     log_operation_session_start "clean"
     DRY_RUN_SEEN_IDENTITIES=()
 
@@ -825,11 +825,11 @@ start_cleanup() {
 
         ensure_user_file "$EXPORT_LIST_FILE"
         cat > "$EXPORT_LIST_FILE" << EOF
-# Mole Cleanup Preview - $(date '+%Y-%m-%d %H:%M:%S')
+# Anteater Cleanup Preview - $(date '+%Y-%m-%d %H:%M:%S')
 #
 # How to protect files:
-# 1. Copy any path below to ~/.config/mole/whitelist
-# 2. Run: mo clean --whitelist
+# 1. Copy any path below to ~/.config/anteater/whitelist
+# 2. Run: aa clean --whitelist
 #
 # Example:
 #   /Users/*/Library/Caches/com.example.app
@@ -844,7 +844,7 @@ EOF
             echo ""
         else
             SYSTEM_CLEAN=false
-            echo -e "${GRAY}${ICON_WARNING} System caches need sudo, run ${NC}sudo -v && mo clean --dry-run${GRAY} for full preview${NC}"
+            echo -e "${GRAY}${ICON_WARNING} System caches need sudo, run ${NC}sudo -v && aa clean --dry-run${GRAY} for full preview${NC}"
             echo ""
         fi
         return
@@ -912,7 +912,7 @@ perform_cleanup() {
 
     # Test mode skips expensive scans and returns minimal output.
     local test_mode_enabled=false
-    if [[ -z "$EXTERNAL_VOLUME_TARGET" && "${MOLE_TEST_MODE:-0}" == "1" ]]; then
+    if [[ -z "$EXTERNAL_VOLUME_TARGET" && "${ANTEATER_TEST_MODE:-0}" == "1" ]]; then
         test_mode_enabled=true
         if [[ "$DRY_RUN" == "true" ]]; then
             echo -e "${YELLOW}Dry Run Mode${NC}, Preview only, no deletions"
@@ -1170,7 +1170,7 @@ perform_cleanup() {
             } >> "$EXPORT_LIST_FILE"
 
             summary_details+=("Detailed file list: ${GRAY}$EXPORT_LIST_FILE${NC}")
-            summary_details+=("Use ${GRAY}mo clean --whitelist${NC} to add protection rules")
+            summary_details+=("Use ${GRAY}aa clean --whitelist${NC} to add protection rules")
         else
             local summary_line="Space freed: ${GREEN}${freed_size_human}${NC}"
 
@@ -1185,8 +1185,8 @@ perform_cleanup() {
             summary_details+=("$summary_line")
 
             # Movie comparison only if >= 1GB
-            if ((total_size_cleaned >= MOLE_ONE_GIB_KB)); then
-                local freed_gb=$((total_size_cleaned / MOLE_ONE_GIB_KB))
+            if ((total_size_cleaned >= ANTEATER_ONE_GIB_KB)); then
+                local freed_gb=$((total_size_cleaned / ANTEATER_ONE_GIB_KB))
                 local movies=$((freed_gb * 10 / 45))
 
                 if [[ $movies -gt 0 ]]; then
@@ -1228,7 +1228,7 @@ run_with_shell_timeout() {
     shift || true
     # Functions (for example safe_clean) are available only in the current shell.
     # Force the shell fallback path so timeout can execute shell functions directly.
-    MO_TIMEOUT_BIN="" MO_TIMEOUT_PERL_BIN="" run_with_timeout "$duration" "$@"
+    AA_TIMEOUT_BIN="" AA_TIMEOUT_PERL_BIN="" run_with_timeout "$duration" "$@"
 }
 
 # shellcheck disable=SC2329  # Invoked indirectly via run_with_timeout fallback.
@@ -1245,11 +1245,11 @@ main() {
                 exit 0
                 ;;
             "--debug")
-                export MO_DEBUG=1
+                export AA_DEBUG=1
                 ;;
             "--dry-run" | "-n")
                 DRY_RUN=true
-                export MOLE_DRY_RUN=1
+                export ANTEATER_DRY_RUN=1
                 ;;
             "--external")
                 shift

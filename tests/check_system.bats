@@ -93,7 +93,7 @@ source "$PROJECT_ROOT/lib/core/common.sh"
 source "$PROJECT_ROOT/lib/check/all.sh"
 LA="$HOME/Library/LaunchAgents"
 rm -rf "$LA" && mkdir -p "$LA"
-export MOLE_LAUNCH_AGENT_DIRS="$LA"
+export ANTEATER_LAUNCH_AGENT_DIRS="$LA"
 mk() { printf '<?xml version="1.0"?><plist version="1.0"><dict><key>Program</key><string>%s</string></dict></plist>' "$2" > "$1"; }
 mk "$LA/com.ghost.helper.plist" "/Applications/Ghost.app/Contents/MacOS/helper"
 mk "$LA/com.real.tool.plist" "/bin/sh"
@@ -115,7 +115,7 @@ source "$PROJECT_ROOT/lib/core/common.sh"
 source "$PROJECT_ROOT/lib/check/all.sh"
 LA="$HOME/Library/LaunchAgents"
 rm -rf "$LA" && mkdir -p "$LA"
-export MOLE_LAUNCH_AGENT_DIRS="$LA"
+export ANTEATER_LAUNCH_AGENT_DIRS="$LA"
 check_orphan_launch_agents
 EOF
 
@@ -132,7 +132,7 @@ is_whitelisted() { [[ "$1" == "check_orphan_launch_agents" ]]; }
 export -f is_whitelisted
 LA="$HOME/Library/LaunchAgents"
 rm -rf "$LA" && mkdir -p "$LA"
-export MOLE_LAUNCH_AGENT_DIRS="$LA"
+export ANTEATER_LAUNCH_AGENT_DIRS="$LA"
 printf '<?xml version="1.0"?><plist version="1.0"><dict><key>Program</key><string>/nonexistent/x</string></dict></plist>' > "$LA/com.ghost.plist"
 check_orphan_launch_agents
 EOF
@@ -145,9 +145,9 @@ EOF
     run env HOME="$HOME" PROJECT_ROOT="$PROJECT_ROOT" bash --noprofile --norc <<'EOF'
 set -euo pipefail
 source "$PROJECT_ROOT/lib/core/common.sh"
-_mole_pkg_receipt_app_root "opt/Vendor Tool.app/Contents/MacOS/tool"
-_mole_pkg_receipt_app_root "usr/local/Direct.app"
-if _mole_pkg_receipt_app_root "Applications/Standard.app/Contents/MacOS/app"; then
+_anteater_pkg_receipt_app_root "opt/Vendor Tool.app/Contents/MacOS/tool"
+_anteater_pkg_receipt_app_root "usr/local/Direct.app"
+if _anteater_pkg_receipt_app_root "Applications/Standard.app/Contents/MacOS/app"; then
   echo "bad"
 else
   echo "rejected"

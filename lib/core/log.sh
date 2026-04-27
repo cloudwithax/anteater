@@ -1,35 +1,35 @@
 #!/bin/bash
-# Mole - Logging System
+# Anteater - Logging System
 # Centralized logging with rotation support
 
 set -euo pipefail
 
 # Prevent multiple sourcing
-if [[ -n "${MOLE_LOG_LOADED:-}" ]]; then
+if [[ -n "${ANTEATER_LOG_LOADED:-}" ]]; then
     return 0
 fi
-readonly MOLE_LOG_LOADED=1
+readonly ANTEATER_LOG_LOADED=1
 
 # Ensure base.sh is loaded for colors and icons
-if [[ -z "${MOLE_BASE_LOADED:-}" ]]; then
-    _MOLE_CORE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [[ -z "${ANTEATER_BASE_LOADED:-}" ]]; then
+    _ANTEATER_CORE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
     # shellcheck source=lib/core/base.sh
-    source "$_MOLE_CORE_DIR/base.sh"
+    source "$_ANTEATER_CORE_DIR/base.sh"
 fi
 
 # ============================================================================
 # Logging Configuration
 # ============================================================================
 
-readonly LOG_FILE="${HOME}/Library/Logs/mole/mole.log"
-readonly DEBUG_LOG_FILE="${HOME}/Library/Logs/mole/mole_debug_session.log"
-readonly OPERATIONS_LOG_FILE="${HOME}/Library/Logs/mole/operations.log"
+readonly LOG_FILE="${HOME}/Library/Logs/anteater/anteater.log"
+readonly DEBUG_LOG_FILE="${HOME}/Library/Logs/anteater/anteater_debug_session.log"
+readonly OPERATIONS_LOG_FILE="${HOME}/Library/Logs/anteater/operations.log"
 readonly LOG_MAX_SIZE_DEFAULT=1048576   # 1MB
 readonly OPLOG_MAX_SIZE_DEFAULT=5242880 # 5MB
 
 # Ensure log directory and file exist with correct ownership
 ensure_user_file "$LOG_FILE"
-if [[ "${MO_NO_OPLOG:-}" != "1" ]]; then
+if [[ "${AA_NO_OPLOG:-}" != "1" ]]; then
     ensure_user_file "$OPERATIONS_LOG_FILE"
 fi
 
@@ -56,8 +56,8 @@ append_log_lines() {
 # Rotate log file if it exceeds maximum size
 rotate_log_once() {
     # Skip if already checked this session
-    [[ -n "${MOLE_LOG_ROTATED:-}" ]] && return 0
-    export MOLE_LOG_ROTATED=1
+    [[ -n "${ANTEATER_LOG_ROTATED:-}" ]] && return 0
+    export ANTEATER_LOG_ROTATED=1
 
     local max_size="$LOG_MAX_SIZE_DEFAULT"
     if [[ -f "$LOG_FILE" ]]; then
@@ -70,7 +70,7 @@ rotate_log_once() {
     fi
 
     # Rotate operations log (5MB limit)
-    if [[ "${MO_NO_OPLOG:-}" != "1" ]]; then
+    if [[ "${AA_NO_OPLOG:-}" != "1" ]]; then
         local oplog_max_size="$OPLOG_MAX_SIZE_DEFAULT"
         if [[ -f "$OPERATIONS_LOG_FILE" ]]; then
             local size
@@ -98,7 +98,7 @@ log_info() {
     local timestamp
     timestamp=$(get_timestamp)
     append_log_line "$LOG_FILE" "[$timestamp] INFO: $1"
-    if [[ "${MO_DEBUG:-}" == "1" ]]; then
+    if [[ "${AA_DEBUG:-}" == "1" ]]; then
         append_log_line "$DEBUG_LOG_FILE" "[$timestamp] INFO: $1"
     fi
 }
@@ -109,7 +109,7 @@ log_success() {
     local timestamp
     timestamp=$(get_timestamp)
     append_log_line "$LOG_FILE" "[$timestamp] SUCCESS: $1"
-    if [[ "${MO_DEBUG:-}" == "1" ]]; then
+    if [[ "${AA_DEBUG:-}" == "1" ]]; then
         append_log_line "$DEBUG_LOG_FILE" "[$timestamp] SUCCESS: $1"
     fi
 }
@@ -120,7 +120,7 @@ log_warning() {
     local timestamp
     timestamp=$(get_timestamp)
     append_log_line "$LOG_FILE" "[$timestamp] WARNING: $1"
-    if [[ "${MO_DEBUG:-}" == "1" ]]; then
+    if [[ "${AA_DEBUG:-}" == "1" ]]; then
         append_log_line "$DEBUG_LOG_FILE" "[$timestamp] WARNING: $1"
     fi
 }
@@ -131,14 +131,14 @@ log_error() {
     local timestamp
     timestamp=$(get_timestamp)
     append_log_line "$LOG_FILE" "[$timestamp] ERROR: $1"
-    if [[ "${MO_DEBUG:-}" == "1" ]]; then
+    if [[ "${AA_DEBUG:-}" == "1" ]]; then
         append_log_line "$DEBUG_LOG_FILE" "[$timestamp] ERROR: $1"
     fi
 }
 
 # shellcheck disable=SC2329
 debug_log() {
-    if [[ "${MO_DEBUG:-}" == "1" ]]; then
+    if [[ "${AA_DEBUG:-}" == "1" ]]; then
         echo -e "${GRAY}[DEBUG]${NC} $*" >&2
         local timestamp
         timestamp=$(get_timestamp)
@@ -150,10 +150,10 @@ debug_log() {
 # Operation Logging (Enabled by default)
 # ============================================================================
 # Records all file operations for user troubleshooting
-# Disable with MO_NO_OPLOG=1
+# Disable with AA_NO_OPLOG=1
 
 oplog_enabled() {
-    [[ "${MO_NO_OPLOG:-}" != "1" ]]
+    [[ "${AA_NO_OPLOG:-}" != "1" ]]
 }
 
 # Log an operation to the operations log file
@@ -187,7 +187,7 @@ log_operation() {
 log_operation_session_start() {
     oplog_enabled || return 0
 
-    local command="${1:-mole}"
+    local command="${1:-anteater}"
     local timestamp
     timestamp=$(get_timestamp)
 
@@ -201,7 +201,7 @@ log_operation_session_start() {
 log_operation_session_end() {
     oplog_enabled || return 0
 
-    local command="${1:-mole}"
+    local command="${1:-anteater}"
     local items="${2:-0}"
     local size="${3:-0}"
     local timestamp
@@ -224,7 +224,7 @@ debug_operation_start() {
     local operation_name="$1"
     local operation_desc="${2:-}"
 
-    if [[ "${MO_DEBUG:-}" == "1" ]]; then
+    if [[ "${AA_DEBUG:-}" == "1" ]]; then
         # Output to stderr for immediate feedback
         echo -e "${GRAY}[DEBUG] === $operation_name ===${NC}" >&2
         [[ -n "$operation_desc" ]] && echo -e "${GRAY}[DEBUG] $operation_desc${NC}" >&2
@@ -250,7 +250,7 @@ debug_operation_detail() {
     local detail_type="$1" # e.g., "Method", "Target", "Expected Outcome"
     local detail_value="$2"
 
-    if [[ "${MO_DEBUG:-}" == "1" ]]; then
+    if [[ "${AA_DEBUG:-}" == "1" ]]; then
         # Output to stderr
         echo -e "${GRAY}[DEBUG] $detail_type: $detail_value${NC}" >&2
 
@@ -266,7 +266,7 @@ debug_file_action() {
     local file_size="${3:-}"
     local file_age="${4:-}"
 
-    if [[ "${MO_DEBUG:-}" == "1" ]]; then
+    if [[ "${AA_DEBUG:-}" == "1" ]]; then
         local msg="  * $file_path"
         [[ -n "$file_size" ]] && msg+=", $file_size"
         [[ -n "$file_age" ]] && msg+=", ${file_age} days old"
@@ -284,7 +284,7 @@ debug_risk_level() {
     local risk_level="$1" # LOW, MEDIUM, HIGH
     local reason="$2"
 
-    if [[ "${MO_DEBUG:-}" == "1" ]]; then
+    if [[ "${AA_DEBUG:-}" == "1" ]]; then
         local color="$GRAY"
         case "$risk_level" in
             LOW) color="$GREEN" ;;
@@ -303,8 +303,8 @@ debug_risk_level() {
 # Log system information for debugging
 log_system_info() {
     # Only allow once per session
-    [[ -n "${MOLE_SYS_INFO_LOGGED:-}" ]] && return 0
-    export MOLE_SYS_INFO_LOGGED=1
+    [[ -n "${ANTEATER_SYS_INFO_LOGGED:-}" ]] && return 0
+    export ANTEATER_SYS_INFO_LOGGED=1
 
     # Reset debug log file for this new session
     ensure_user_file "$DEBUG_LOG_FILE"
@@ -315,7 +315,7 @@ log_system_info() {
     # Start block in debug log file
     {
         echo "----------------------------------------------------------------------"
-        echo "Mole Debug Session, $(date '+%Y-%m-%d %H:%M:%S')"
+        echo "Anteater Debug Session, $(date '+%Y-%m-%d %H:%M:%S')"
         echo "----------------------------------------------------------------------"
         echo "User: $USER"
         echo "Hostname: $(hostname)"
@@ -327,7 +327,7 @@ log_system_info() {
         echo "Shell: ${SHELL:-unknown}, ${TERM:-unknown}"
 
         # Check sudo status non-interactively (skip in test mode)
-        if [[ "${MOLE_TEST_MODE:-0}" == "1" || "${MOLE_TEST_NO_AUTH:-0}" == "1" ]]; then
+        if [[ "${ANTEATER_TEST_MODE:-0}" == "1" || "${ANTEATER_TEST_NO_AUTH:-0}" == "1" ]]; then
             echo "Sudo Access: Skipped (test mode)"
         elif sudo -n true 2> /dev/null; then
             echo "Sudo Access: Active"
@@ -354,7 +354,7 @@ run_silent() {
 run_logged() {
     local cmd="$1"
     # Log to main file, and also to debug file if enabled
-    if [[ "${MO_DEBUG:-}" == "1" ]]; then
+    if [[ "${AA_DEBUG:-}" == "1" ]]; then
         if ! "$@" 2>&1 | tee -a "$LOG_FILE" | tee -a "$DEBUG_LOG_FILE" > /dev/null; then
             log_warning "Command failed: $cmd"
             return 1
@@ -410,7 +410,7 @@ print_summary_block() {
     echo "$divider"
 
     # If debug mode is on, remind user about the log file location
-    if [[ "${MO_DEBUG:-}" == "1" ]]; then
+    if [[ "${AA_DEBUG:-}" == "1" ]]; then
         echo -e "${GRAY}Debug session log saved to:${NC} ${DEBUG_LOG_FILE}"
     fi
 }
@@ -423,6 +423,6 @@ print_summary_block() {
 rotate_log_once
 
 # If debug mode is enabled, log system info immediately
-if [[ "${MO_DEBUG:-}" == "1" ]]; then
+if [[ "${AA_DEBUG:-}" == "1" ]]; then
     log_system_info
 fi

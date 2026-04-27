@@ -59,7 +59,7 @@ cmd/analyze/analyze
 cmd/status/status
 /status
 /analyze
-mole-analyze
+anteater-analyze
 # Go binaries
 bin/analyze-go
 bin/status-go
@@ -79,6 +79,6 @@ coverage.html
 session.json
 run_tests.ps1
 AGENTS.md
-mole_guidelines.md
+anteater_guidelines.md
 CLAUDE.md
 .claude/settings.local.json

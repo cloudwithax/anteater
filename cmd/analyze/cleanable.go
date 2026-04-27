@@ -7,13 +7,13 @@ import (
 	"strings"
 )
 
-// isCleanableDir marks paths safe to delete manually (not handled by mo clean).
+// isCleanableDir marks paths safe to delete manually (not handled by aa clean).
 func isCleanableDir(path string) bool {
 	if path == "" {
 		return false
 	}
 
-	// Exclude paths mo clean already handles.
+	// Exclude paths aa clean already handles.
 	if isHandledByMoClean(path) {
 		return false
 	}
@@ -28,7 +28,7 @@ func isCleanableDir(path string) bool {
 	return false
 }
 
-// isHandledByMoClean checks if a path is cleaned by mo clean.
+// isHandledByMoClean checks if a path is cleaned by aa clean.
 func isHandledByMoClean(path string) bool {
 	cleanPaths := []string{
 		"/Library/Caches/",

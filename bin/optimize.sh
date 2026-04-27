@@ -1,5 +1,5 @@
 #!/bin/bash
-# Mole - Optimize command.
+# Anteater - Optimize command.
 # Runs system maintenance checks and fixes.
 # Supports dry-run where applicable.
 
@@ -85,13 +85,13 @@ parse_optimization_items() {
 
 run_system_checks() {
     # Skip checks in dry-run mode.
-    if [[ "${MOLE_DRY_RUN:-0}" == "1" ]]; then
+    if [[ "${ANTEATER_DRY_RUN:-0}" == "1" ]]; then
         return 0
     fi
 
     unset AUTO_FIX_SUMMARY AUTO_FIX_DETAILS
-    unset MOLE_SECURITY_FIXES_SHOWN
-    unset MOLE_SECURITY_FIXES_SKIPPED
+    unset ANTEATER_SECURITY_FIXES_SHOWN
+    unset ANTEATER_SECURITY_FIXES_SKIPPED
     echo ""
 
     check_all_updates
@@ -104,7 +104,7 @@ run_system_checks() {
     if ask_for_security_fixes; then
         perform_security_fixes
     fi
-    if [[ "${MOLE_SECURITY_FIXES_SKIPPED:-}" != "true" ]]; then
+    if [[ "${ANTEATER_SECURITY_FIXES_SKIPPED:-}" != "true" ]]; then
         echo ""
     fi
 
@@ -133,7 +133,7 @@ show_optimization_summary() {
     local -a summary_details=()
     local total_applied=$safe_count
 
-    if [[ "${MOLE_DRY_RUN:-0}" == "1" ]]; then
+    if [[ "${ANTEATER_DRY_RUN:-0}" == "1" ]]; then
         summary_title="Dry Run Complete, No Changes Made"
         summary_details+=("Would apply ${YELLOW}${total_applied:-0}${NC} optimizations")
         summary_details+=("Run without ${YELLOW}--dry-run${NC} to apply these changes")
@@ -325,12 +325,12 @@ ask_for_security_fixes() {
         echo -e "  ${ICON_LIST} $label"
     done
     echo ""
-    export MOLE_SECURITY_FIXES_SHOWN=true
+    export ANTEATER_SECURITY_FIXES_SHOWN=true
     echo -ne "${GRAY}${ICON_REVIEW}${NC} ${YELLOW}Apply now?${NC} ${GRAY}Enter confirm / Space cancel${NC}: "
 
     local key
     if ! key=$(read_key); then
-        export MOLE_SECURITY_FIXES_SKIPPED=true
+        export ANTEATER_SECURITY_FIXES_SKIPPED=true
         echo -e "\n  ${GRAY}${ICON_WARNING}${NC} Security fixes skipped"
         echo ""
         return 1
@@ -340,7 +340,7 @@ ask_for_security_fixes() {
         echo ""
         return 0
     else
-        export MOLE_SECURITY_FIXES_SKIPPED=true
+        export ANTEATER_SECURITY_FIXES_SKIPPED=true
         echo -e "\n  ${GRAY}${ICON_WARNING}${NC} Security fixes skipped"
         echo ""
         return 1
@@ -404,7 +404,7 @@ handle_interrupt() {
 
 main() {
     # Set current command for operation logging
-    export MOLE_CURRENT_COMMAND="optimize"
+    export ANTEATER_CURRENT_COMMAND="optimize"
 
     local health_json
     for arg in "$@"; do
@@ -414,10 +414,10 @@ main() {
                 exit 0
                 ;;
             "--debug")
-                export MO_DEBUG=1
+                export AA_DEBUG=1
                 ;;
             "--dry-run")
-                export MOLE_DRY_RUN=1
+                export ANTEATER_DRY_RUN=1
                 ;;
             "--whitelist")
                 manage_whitelist "optimize"
@@ -437,7 +437,7 @@ main() {
     print_header
 
     # Dry-run indicator.
-    if [[ "${MOLE_DRY_RUN:-0}" == "1" ]]; then
+    if [[ "${ANTEATER_DRY_RUN:-0}" == "1" ]]; then
         echo -e "${YELLOW}${ICON_DRY_RUN} DRY RUN MODE${NC}, No files will be modified\n"
     fi
 
@@ -499,7 +499,7 @@ main() {
     done < "$opts_file"
 
     echo ""
-    if [[ "${MOLE_DRY_RUN:-0}" != "1" ]]; then
+    if [[ "${ANTEATER_DRY_RUN:-0}" != "1" ]]; then
         ensure_sudo_session "System optimization requires admin access" || true
     fi
 

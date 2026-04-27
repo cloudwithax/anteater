@@ -38,7 +38,7 @@ setup() {
     [ -f "$PROJECT_ROOT/scripts/check.sh" ]
     [ -x "$PROJECT_ROOT/scripts/check.sh" ]
 
-    run bash -c "grep -q 'Mole Check' '$PROJECT_ROOT/scripts/check.sh'"
+    run bash -c "grep -q 'Anteater Check' '$PROJECT_ROOT/scripts/check.sh'"
     [ "$status" -eq 0 ]
 }
 
@@ -46,7 +46,7 @@ setup() {
     [ -f "$PROJECT_ROOT/scripts/test.sh" ]
     [ -x "$PROJECT_ROOT/scripts/test.sh" ]
 
-    run bash -c "grep -q 'Mole Test Runner' '$PROJECT_ROOT/scripts/test.sh'"
+    run bash -c "grep -q 'Anteater Test Runner' '$PROJECT_ROOT/scripts/test.sh'"
     [ "$status" -eq 0 ]
 }
 
@@ -75,26 +75,26 @@ setup() {
 @test "setup-quick-launchers.sh generates Raycast scripts with discoverable metadata" {
     local fake_bin="$HOME/fake-bin"
     mkdir -p "$fake_bin"
-    cat > "$fake_bin/mo" <<'EOF'
+    cat > "$fake_bin/aa" <<'EOF'
 #!/bin/bash
 exit 0
 EOF
-    chmod +x "$fake_bin/mo"
+    chmod +x "$fake_bin/aa"
 
     run env HOME="$HOME" TERM="dumb" PATH="$fake_bin:/usr/bin:/bin:/usr/sbin:/sbin" \
         "$PROJECT_ROOT/scripts/setup-quick-launchers.sh"
     [ "$status" -eq 0 ]
-    [[ "$output" == *"Raycast: Mole Clean | Alfred keyword: clean"* ]]
-    [[ "$output" == *"Raycast: Mole Status | Alfred keyword: status"* ]]
+    [[ "$output" == *"Raycast: Anteater Clean | Alfred keyword: clean"* ]]
+    [[ "$output" == *"Raycast: Anteater Status | Alfred keyword: status"* ]]
 
     local raycast_dir="$HOME/Library/Application Support/Raycast/script-commands"
     [ -d "$raycast_dir" ]
 
-    local clean_script="$raycast_dir/mole-clean.sh"
-    local uninstall_script="$raycast_dir/mole-uninstall.sh"
-    local optimize_script="$raycast_dir/mole-optimize.sh"
-    local analyze_script="$raycast_dir/mole-analyze.sh"
-    local status_script="$raycast_dir/mole-status.sh"
+    local clean_script="$raycast_dir/anteater-clean.sh"
+    local uninstall_script="$raycast_dir/anteater-uninstall.sh"
+    local optimize_script="$raycast_dir/anteater-optimize.sh"
+    local analyze_script="$raycast_dir/anteater-analyze.sh"
+    local status_script="$raycast_dir/anteater-status.sh"
 
     [ -x "$clean_script" ]
     [ -x "$uninstall_script" ]
@@ -102,24 +102,24 @@ EOF
     [ -x "$analyze_script" ]
     [ -x "$status_script" ]
 
-    run grep -q '^# @raycast.title Mole Clean$' "$clean_script"
+    run grep -q '^# @raycast.title Anteater Clean$' "$clean_script"
     [ "$status" -eq 0 ]
-    run grep -q '^# @raycast.title Mole Uninstall$' "$uninstall_script"
+    run grep -q '^# @raycast.title Anteater Uninstall$' "$uninstall_script"
     [ "$status" -eq 0 ]
-    run grep -q '^# @raycast.title Mole Optimize$' "$optimize_script"
+    run grep -q '^# @raycast.title Anteater Optimize$' "$optimize_script"
     [ "$status" -eq 0 ]
-    run grep -q '^# @raycast.title Mole Analyze$' "$analyze_script"
+    run grep -q '^# @raycast.title Anteater Analyze$' "$analyze_script"
     [ "$status" -eq 0 ]
-    run grep -q '^# @raycast.title Mole Status$' "$status_script"
+    run grep -q '^# @raycast.title Anteater Status$' "$status_script"
     [ "$status" -eq 0 ]
 
-    run grep -q '^# @raycast.description Deep system cleanup with Mole$' "$clean_script"
+    run grep -q '^# @raycast.description Deep system cleanup with Anteater$' "$clean_script"
     [ "$status" -eq 0 ]
-    run grep -q '^# @raycast.description Uninstall applications with Mole$' "$uninstall_script"
+    run grep -q '^# @raycast.description Uninstall applications with Anteater$' "$uninstall_script"
     [ "$status" -eq 0 ]
     run grep -q '^# @raycast.description System health checks and optimization$' "$optimize_script"
     [ "$status" -eq 0 ]
-    run grep -q '^# @raycast.description Disk space analysis with Mole$' "$analyze_script"
+    run grep -q '^# @raycast.description Disk space analysis with Anteater$' "$analyze_script"
     [ "$status" -eq 0 ]
     run grep -q '^# @raycast.description Live system status dashboard$' "$status_script"
     [ "$status" -eq 0 ]
@@ -128,26 +128,26 @@ EOF
 @test "install.sh supports dev branch installs" {
     run bash -c "grep -q 'refs/heads/dev.tar.gz' '$PROJECT_ROOT/install.sh'"
     [ "$status" -eq 0 ]
-    run bash -c "grep -q 'MOLE_VERSION=\"dev\"' '$PROJECT_ROOT/install.sh'"
+    run bash -c "grep -q 'ANTEATER_VERSION=\"dev\"' '$PROJECT_ROOT/install.sh'"
     [ "$status" -eq 0 ]
 }
 
 @test "update_homebrew_tap_formula.sh updates all release artifacts" {
-    local formula_file="$HOME/mole.rb"
+    local formula_file="$HOME/anteater.rb"
     cat > "$formula_file" <<'EOF'
-class Mole < Formula
-  desc "Mole"
-  homepage "https://github.com/tw93/Mole"
-  url "https://github.com/tw93/Mole/archive/refs/tags/V1.32.0.tar.gz"
+class Anteater < Formula
+  desc "Anteater"
+  homepage "https://github.com/cloudwithax/anteater"
+  url "https://github.com/cloudwithax/anteater/archive/refs/tags/V1.32.0.tar.gz"
   sha256 "old-source-sha"
 
   on_arm do
-    url "https://github.com/tw93/Mole/releases/download/V1.32.0/binaries-darwin-arm64.tar.gz"
+    url "https://github.com/cloudwithax/anteater/releases/download/V1.32.0/binaries-darwin-arm64.tar.gz"
     sha256 "old-arm-sha"
   end
 
   on_intel do
-    url "https://github.com/tw93/Mole/releases/download/V1.32.0/binaries-darwin-amd64.tar.gz"
+    url "https://github.com/cloudwithax/anteater/releases/download/V1.32.0/binaries-darwin-amd64.tar.gz"
     sha256 "old-amd-sha"
   end
 end
@@ -161,31 +161,31 @@ EOF
         --amd-sha "new-amd-sha"
     [ "$status" -eq 0 ]
 
-    run grep -q 'url "https://github.com/tw93/Mole/archive/refs/tags/V1.33.0.tar.gz"' "$formula_file"
+    run grep -q 'url "https://github.com/cloudwithax/anteater/archive/refs/tags/V1.33.0.tar.gz"' "$formula_file"
     [ "$status" -eq 0 ]
     run grep -q 'sha256 "new-source-sha"' "$formula_file"
     [ "$status" -eq 0 ]
-    run grep -q 'url "https://github.com/tw93/Mole/releases/download/V1.33.0/binaries-darwin-arm64.tar.gz"' "$formula_file"
+    run grep -q 'url "https://github.com/cloudwithax/anteater/releases/download/V1.33.0/binaries-darwin-arm64.tar.gz"' "$formula_file"
     [ "$status" -eq 0 ]
     run grep -q 'sha256 "new-arm-sha"' "$formula_file"
     [ "$status" -eq 0 ]
-    run grep -q 'url "https://github.com/tw93/Mole/releases/download/V1.33.0/binaries-darwin-amd64.tar.gz"' "$formula_file"
+    run grep -q 'url "https://github.com/cloudwithax/anteater/releases/download/V1.33.0/binaries-darwin-amd64.tar.gz"' "$formula_file"
     [ "$status" -eq 0 ]
     run grep -q 'sha256 "new-amd-sha"' "$formula_file"
     [ "$status" -eq 0 ]
 }
 
 @test "update_homebrew_tap_formula.sh fails when expected sections are missing" {
-    local formula_file="$HOME/mole-missing-intel.rb"
+    local formula_file="$HOME/anteater-missing-intel.rb"
     cat > "$formula_file" <<'EOF'
-class Mole < Formula
-  desc "Mole"
-  homepage "https://github.com/tw93/Mole"
-  url "https://github.com/tw93/Mole/archive/refs/tags/V1.32.0.tar.gz"
+class Anteater < Formula
+  desc "Anteater"
+  homepage "https://github.com/cloudwithax/anteater"
+  url "https://github.com/cloudwithax/anteater/archive/refs/tags/V1.32.0.tar.gz"
   sha256 "old-source-sha"
 
   on_arm do
-    url "https://github.com/tw93/Mole/releases/download/V1.32.0/binaries-darwin-arm64.tar.gz"
+    url "https://github.com/cloudwithax/anteater/releases/download/V1.32.0/binaries-darwin-arm64.tar.gz"
     sha256 "old-arm-sha"
   end
 end

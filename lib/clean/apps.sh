@@ -2,8 +2,8 @@
 # Application Data Cleanup Module
 set -euo pipefail
 
-readonly ORPHAN_AGE_THRESHOLD=${ORPHAN_AGE_THRESHOLD:-${MOLE_ORPHAN_AGE_DAYS:-30}}
-readonly CLAUDE_VM_ORPHAN_AGE_THRESHOLD=${MOLE_CLAUDE_VM_ORPHAN_AGE_DAYS:-7}
+readonly ORPHAN_AGE_THRESHOLD=${ORPHAN_AGE_THRESHOLD:-${ANTEATER_ORPHAN_AGE_DAYS:-30}}
+readonly CLAUDE_VM_ORPHAN_AGE_THRESHOLD=${ANTEATER_CLAUDE_VM_ORPHAN_AGE_DAYS:-7}
 # Args: $1=target_dir, $2=label
 clean_ds_store_tree() {
     local target="$1"
@@ -13,7 +13,7 @@ clean_ds_store_tree() {
     local total_bytes=0
     local spinner_active="false"
     if [[ -t 1 ]]; then
-        MOLE_SPINNER_PREFIX="  "
+        ANTEATER_SPINNER_PREFIX="  "
         start_inline_spinner "Cleaning Finder metadata..."
         spinner_active="true"
     fi
@@ -38,7 +38,7 @@ clean_ds_store_tree() {
         if [[ "$DRY_RUN" != "true" ]]; then
             safe_remove "$ds_file" true 2> /dev/null || true
         fi
-        if [[ $file_count -ge $MOLE_MAX_DS_STORE_FILES ]]; then
+        if [[ $file_count -ge $ANTEATER_MAX_DS_STORE_FILES ]]; then
             break
         fi
     done < <("${find_cmd[@]}" 2> /dev/null || true)
@@ -67,7 +67,7 @@ clean_ds_store_tree() {
 scan_installed_apps() {
     local installed_bundles="$1"
     # Cache installed app scan briefly to speed repeated runs.
-    local cache_file="$HOME/.cache/mole/installed_apps_cache"
+    local cache_file="$HOME/.cache/anteater/installed_apps_cache"
     local cache_age_seconds=300 # 5 minutes
     if [[ -f "$cache_file" ]]; then
         local cache_mtime=$(get_file_mtime "$cache_file")
@@ -126,7 +126,7 @@ scan_installed_apps() {
     # Collect running apps and LaunchAgents to avoid false orphan cleanup.
     (
         # Skip AppleScript during tests to avoid permission dialogs
-        if [[ "${MOLE_TEST_MODE:-0}" != "1" && "${MOLE_TEST_NO_AUTH:-0}" != "1" ]]; then
+        if [[ "${ANTEATER_TEST_MODE:-0}" != "1" && "${ANTEATER_TEST_NO_AUTH:-0}" != "1" ]]; then
             local running_apps=$(run_with_timeout 5 osascript -e 'tell application "System Events" to get bundle identifier of every application process' 2> /dev/null || echo "")
             echo "$running_apps" | tr ',' '\n' | sed -e 's/^ *//;s/ *$//' -e '/^$/d' -e '/^missing value$/d' > "$scan_tmp_dir/running.txt"
         fi
@@ -223,8 +223,8 @@ is_bundle_orphaned() {
     if [[ -n "$bundle_id" ]] && [[ "$bundle_id" =~ ^[a-zA-Z0-9._-]+$ ]] && [[ ${#bundle_id} -ge 5 ]]; then
         # Initialize cache file if needed
         if [[ -z "$ORPHAN_MDFIND_CACHE_FILE" ]]; then
-            ensure_mole_temp_root
-            ORPHAN_MDFIND_CACHE_FILE=$(mktemp "$MOLE_RESOLVED_TMPDIR/mole_mdfind_cache.XXXXXX")
+            ensure_anteater_temp_root
+            ORPHAN_MDFIND_CACHE_FILE=$(mktemp "$ANTEATER_RESOLVED_TMPDIR/anteater_mdfind_cache.XXXXXX")
             register_temp_file "$ORPHAN_MDFIND_CACHE_FILE"
         fi
 
@@ -280,8 +280,8 @@ is_claude_vm_bundle_orphaned() {
     fi
 
     if [[ -z "$ORPHAN_MDFIND_CACHE_FILE" ]]; then
-        ensure_mole_temp_root
-        ORPHAN_MDFIND_CACHE_FILE=$(mktemp "$MOLE_RESOLVED_TMPDIR/mole_mdfind_cache.XXXXXX")
+        ensure_anteater_temp_root
+        ORPHAN_MDFIND_CACHE_FILE=$(mktemp "$ANTEATER_RESOLVED_TMPDIR/anteater_mdfind_cache.XXXXXX")
         register_temp_file "$ORPHAN_MDFIND_CACHE_FILE"
     fi
 
@@ -384,7 +384,7 @@ clean_orphaned_app_data() {
                 for match in "${matches[@]}"; do
                     [[ -e "$match" ]] || continue
                     iteration_count=$((iteration_count + 1))
-                    if [[ $iteration_count -gt $MOLE_MAX_ORPHAN_ITERATIONS ]]; then
+                    if [[ $iteration_count -gt $ANTEATER_MAX_ORPHAN_ITERATIONS ]]; then
                         break
                     fi
                     local bundle_id=$(basename "$match")
@@ -471,8 +471,8 @@ clean_orphaned_system_services() {
 
         if [[ -n "$bundle_id" ]] && [[ "$bundle_id" =~ ^[a-zA-Z0-9._-]+$ ]] && [[ ${#bundle_id} -ge 5 ]]; then
             if [[ -z "$mdfind_cache_file" ]]; then
-                ensure_mole_temp_root
-                mdfind_cache_file=$(mktemp "$MOLE_RESOLVED_TMPDIR/mole_mdfind_cache.XXXXXX")
+                ensure_anteater_temp_root
+                mdfind_cache_file=$(mktemp "$ANTEATER_RESOLVED_TMPDIR/anteater_mdfind_cache.XXXXXX")
                 register_temp_file "$mdfind_cache_file"
             fi
 
@@ -671,7 +671,7 @@ clean_orphaned_system_services() {
 # ============================================================================
 
 # User-level LaunchAgents are user-owned automation/configuration, not generic
-# cleanup targets. `mo clean` must not delete them automatically.
+# cleanup targets. `aa clean` must not delete them automatically.
 clean_orphaned_launch_agents() {
     return 0
 }

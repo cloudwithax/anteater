@@ -23,7 +23,7 @@ teardown_file() {
 setup() {
 	mkdir -p "$HOME/www"
 	mkdir -p "$HOME/dev"
-	mkdir -p "$HOME/.cache/mole"
+	mkdir -p "$HOME/.cache/anteater"
 
 	rm -rf "${HOME:?}/www"/* "${HOME:?}/dev"/*
 }
@@ -110,7 +110,7 @@ setup() {
 }
 
 @test "compact_purge_scan_path keeps the tail of long purge paths visible" {
-	run env HOME="$HOME" PROJECT_ROOT="$PROJECT_ROOT" MOLE_SKIP_MAIN=1 bash --noprofile --norc <<'EOF'
+	run env HOME="$HOME" PROJECT_ROOT="$PROJECT_ROOT" ANTEATER_SKIP_MAIN=1 bash --noprofile --norc <<'EOF'
 set -euo pipefail
 source "$PROJECT_ROOT/bin/purge.sh"
 compact_purge_scan_path "$HOME/projects/team/service/very/deep/component/node_modules" 32
@@ -323,7 +323,7 @@ EOF
 set -euo pipefail
 source "$PROJECT_ROOT/lib/clean/project.sh"
 save_discovered_paths "$HOME/Projects"
-grep -q "^~/" "$HOME/.config/mole/purge_paths"
+grep -q "^~/" "$HOME/.config/anteater/purge_paths"
 EOF
 
 	[ "$status" -eq 0 ]
@@ -583,7 +583,7 @@ EOF
 
 	result=$(bash -c "
         source '$PROJECT_ROOT/lib/clean/project.sh'
-        MO_USE_FIND=1 scan_purge_targets '$HOME/single-project' '$scan_output'
+        AA_USE_FIND=1 scan_purge_targets '$HOME/single-project' '$scan_output'
         if grep -q '$HOME/single-project/node_modules' '$scan_output'; then
             echo 'FOUND'
         else
@@ -605,7 +605,7 @@ EOF
 
 	result=$(bash -c "
         source '$PROJECT_ROOT/lib/clean/project.sh'
-        MO_USE_FIND=1 scan_purge_targets '$HOME/single-project/' '$scan_output'
+        AA_USE_FIND=1 scan_purge_targets '$HOME/single-project/' '$scan_output'
         if grep -q '$HOME/single-project/node_modules' '$scan_output'; then
             echo 'FOUND'
         else
@@ -755,8 +755,8 @@ set -euo pipefail
 source "$PROJECT_ROOT/lib/core/common.sh"
 source "$PROJECT_ROOT/lib/clean/project.sh"
 
-mkdir -p "$HOME/.cache/mole"
-echo "0" > "$HOME/.cache/mole/purge_stats"
+mkdir -p "$HOME/.cache/anteater"
+echo "0" > "$HOME/.cache/anteater/purge_stats"
 
 mkdir -p "$HOME/www/test-project/node_modules"
 echo "test data" > "$HOME/www/test-project/node_modules/file.js"
@@ -766,10 +766,10 @@ touch -t 202001010101 "$HOME/www/test-project/node_modules" "$HOME/www/test-proj
 PURGE_SEARCH_PATHS=("$HOME/www")
 safe_remove() { return 1; }
 
-export MOLE_DRY_RUN=1
+export ANTEATER_DRY_RUN=1
 clean_project_artifacts
 
-stats_dir="${XDG_CACHE_HOME:-$HOME/.cache}/mole"
+stats_dir="${XDG_CACHE_HOME:-$HOME/.cache}/anteater"
 echo "COUNT=$(cat "$stats_dir/purge_count" 2> /dev/null || echo missing)"
 echo "SIZE=$(cat "$stats_dir/purge_stats" 2> /dev/null || echo missing)"
 [[ -d "$HOME/www/test-project/node_modules" ]]
@@ -804,18 +804,18 @@ EOF
 		[[ "$output" =~ "Great" ]]
 }
 
-@test "mo purge: command exists and is executable" {
-	[ -x "$PROJECT_ROOT/mole" ]
+@test "aa purge: command exists and is executable" {
+	[ -x "$PROJECT_ROOT/anteater" ]
 	[ -f "$PROJECT_ROOT/bin/purge.sh" ]
 }
 
-@test "mo purge: shows in help text" {
-	run env HOME="$HOME" "$PROJECT_ROOT/mole" --help
+@test "aa purge: shows in help text" {
+	run env HOME="$HOME" "$PROJECT_ROOT/anteater" --help
 	[ "$status" -eq 0 ]
-	[[ "$output" == *"mo purge"* ]]
+	[[ "$output" == *"aa purge"* ]]
 }
 
-@test "mo purge: accepts --debug flag" {
+@test "aa purge: accepts --debug flag" {
 	if ! command -v gtimeout >/dev/null 2>&1 && ! command -v timeout >/dev/null 2>&1; then
 		skip "gtimeout/timeout not available"
 	fi
@@ -825,12 +825,12 @@ EOF
 
 	run bash -c "
         export HOME='$HOME'
-        $timeout_cmd 2 '$PROJECT_ROOT/mole' purge --debug < /dev/null 2>&1 || true
+        $timeout_cmd 2 '$PROJECT_ROOT/anteater' purge --debug < /dev/null 2>&1 || true
     "
 	true
 }
 
-@test "mo purge: accepts --dry-run flag" {
+@test "aa purge: accepts --dry-run flag" {
 	if ! command -v gtimeout >/dev/null 2>&1 && ! command -v timeout >/dev/null 2>&1; then
 		skip "gtimeout/timeout not available"
 	fi
@@ -840,13 +840,13 @@ EOF
 
 	run bash -c "
         export HOME='$HOME'
-        $timeout_cmd 2 '$PROJECT_ROOT/mole' purge --dry-run < /dev/null 2>&1 || true
+        $timeout_cmd 2 '$PROJECT_ROOT/anteater' purge --dry-run < /dev/null 2>&1 || true
     "
 
 	[[ "$output" == *"DRY RUN MODE"* ]] || [[ "$output" == *"Dry run complete"* ]]
 }
 
-@test "mo purge: creates cache directory for stats" {
+@test "aa purge: creates cache directory for stats" {
 	if ! command -v gtimeout >/dev/null 2>&1 && ! command -v timeout >/dev/null 2>&1; then
 		skip "gtimeout/timeout not available"
 	fi
@@ -856,10 +856,10 @@ EOF
 
 	bash -c "
         export HOME='$HOME'
-        $timeout_cmd 2 '$PROJECT_ROOT/mole' purge < /dev/null 2>&1 || true
+        $timeout_cmd 2 '$PROJECT_ROOT/anteater' purge < /dev/null 2>&1 || true
     "
 
-	[ -d "$HOME/.cache/mole" ] || [ -d "${XDG_CACHE_HOME:-$HOME/.cache}/mole" ]
+	[ -d "$HOME/.cache/anteater" ] || [ -d "${XDG_CACHE_HOME:-$HOME/.cache}/anteater" ]
 }
 
 # .NET bin directory detection tests
@@ -964,7 +964,7 @@ EOF
 # array (menu_options, item_paths, item_sizes, …) was in size order.
 # Effect: the "Full path" footer showed the wrong project for the highlighted
 # item, and the confirmation dialog listed paths that did not match the
-# selection. See https://github.com/tw93/Mole/issues/647
+# selection. See https://github.com/cloudwithax/anteater/issues/647
 #
 # These tests run clean_project_artifacts under a pseudo-terminal (so the
 # interactive code path is taken and select_purge_categories is called).
@@ -999,7 +999,7 @@ _run_in_pty() {
 	cat > "$script_file" << SCRIPT
 set -euo pipefail
 source "$PROJECT_ROOT/lib/clean/project.sh"
-mkdir -p "$HOME/.cache/mole"
+mkdir -p "$HOME/.cache/anteater"
 export XDG_CACHE_HOME="$HOME/.cache"
 export TERM="dumb"
 PURGE_SEARCH_PATHS=("$HOME/www")
@@ -1048,7 +1048,7 @@ SCRIPT
 	cat > "$script_file" << SCRIPT
 set -euo pipefail
 source "$PROJECT_ROOT/lib/clean/project.sh"
-mkdir -p "$HOME/.cache/mole"
+mkdir -p "$HOME/.cache/anteater"
 export XDG_CACHE_HOME="$HOME/.cache"
 export TERM="dumb"
 PURGE_SEARCH_PATHS=("$HOME/www")

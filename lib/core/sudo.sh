@@ -75,7 +75,7 @@ request_sudo_access() {
     fi
 
     # Tests must never trigger real password or Touch ID prompts.
-    if [[ "${MOLE_TEST_MODE:-0}" == "1" || "${MOLE_TEST_NO_AUTH:-0}" == "1" ]]; then
+    if [[ "${ANTEATER_TEST_MODE:-0}" == "1" || "${ANTEATER_TEST_NO_AUTH:-0}" == "1" ]]; then
         return 1
     fi
 
@@ -97,7 +97,7 @@ request_sudo_access() {
 
         # Display native macOS password dialog
         local password
-        password=$(osascript -e "display dialog \"$prompt_msg\" default answer \"\" with title \"Mole\" with icon caution with hidden answer" -e 'text returned of result' 2> /dev/null)
+        password=$(osascript -e "display dialog \"$prompt_msg\" default answer \"\" with title \"Anteater\" with icon caution with hidden answer" -e 'text returned of result' 2> /dev/null)
 
         if [[ -z "$password" ]]; then
             # User cancelled the dialog
@@ -203,8 +203,8 @@ request_sudo_access() {
 # ============================================================================
 
 # Global state
-MOLE_SUDO_KEEPALIVE_PID=""
-MOLE_SUDO_ESTABLISHED="false"
+ANTEATER_SUDO_KEEPALIVE_PID=""
+ANTEATER_SUDO_ESTABLISHED="false"
 
 # Start sudo keepalive
 _start_sudo_keepalive() {
@@ -270,41 +270,41 @@ ensure_sudo_session() {
     local prompt="${1:-Admin access required}"
 
     # Check if already established
-    if has_sudo_session && [[ "$MOLE_SUDO_ESTABLISHED" == "true" ]]; then
+    if has_sudo_session && [[ "$ANTEATER_SUDO_ESTABLISHED" == "true" ]]; then
         return 0
     fi
 
-    if [[ "${MOLE_TEST_MODE:-0}" == "1" || "${MOLE_TEST_NO_AUTH:-0}" == "1" ]]; then
-        MOLE_SUDO_ESTABLISHED="false"
+    if [[ "${ANTEATER_TEST_MODE:-0}" == "1" || "${ANTEATER_TEST_NO_AUTH:-0}" == "1" ]]; then
+        ANTEATER_SUDO_ESTABLISHED="false"
         return 1
     fi
 
     # Stop old keepalive if exists
-    if [[ -n "$MOLE_SUDO_KEEPALIVE_PID" ]]; then
-        _stop_sudo_keepalive "$MOLE_SUDO_KEEPALIVE_PID"
-        MOLE_SUDO_KEEPALIVE_PID=""
+    if [[ -n "$ANTEATER_SUDO_KEEPALIVE_PID" ]]; then
+        _stop_sudo_keepalive "$ANTEATER_SUDO_KEEPALIVE_PID"
+        ANTEATER_SUDO_KEEPALIVE_PID=""
     fi
 
     # Request sudo access
     if ! request_sudo "$prompt"; then
-        MOLE_SUDO_ESTABLISHED="false"
+        ANTEATER_SUDO_ESTABLISHED="false"
         return 1
     fi
 
     # Start keepalive
-    MOLE_SUDO_KEEPALIVE_PID=$(_start_sudo_keepalive)
+    ANTEATER_SUDO_KEEPALIVE_PID=$(_start_sudo_keepalive)
 
-    MOLE_SUDO_ESTABLISHED="true"
+    ANTEATER_SUDO_ESTABLISHED="true"
     return 0
 }
 
 # Stop sudo session and cleanup
 stop_sudo_session() {
-    if [[ -n "$MOLE_SUDO_KEEPALIVE_PID" ]]; then
-        _stop_sudo_keepalive "$MOLE_SUDO_KEEPALIVE_PID"
-        MOLE_SUDO_KEEPALIVE_PID=""
+    if [[ -n "$ANTEATER_SUDO_KEEPALIVE_PID" ]]; then
+        _stop_sudo_keepalive "$ANTEATER_SUDO_KEEPALIVE_PID"
+        ANTEATER_SUDO_KEEPALIVE_PID=""
     fi
-    MOLE_SUDO_ESTABLISHED="false"
+    ANTEATER_SUDO_ESTABLISHED="false"
 }
 
 # Register cleanup on script exit
