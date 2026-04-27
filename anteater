@@ -173,6 +173,8 @@ show_help() {
         printf "  %s%-28s%s %s\n" "$GREEN" "$display" "$NC" "$desc"
     done
     echo
+    printf "  %s%-28s%s %s\n" "$GREEN" "aa clean --dry-run" "$NC" "Preview cache cleanup"
+    printf "  %s%-28s%s %s\n" "$GREEN" "aa clean --include-cache" "$NC" "Also offer ~/.cache catch-all"
     printf "  %s%-28s%s %s\n" "$GREEN" "aa purge --dry-run" "$NC" "Preview project purge"
     printf "  %s%-28s%s %s\n" "$GREEN" "aa purge --paths" "$NC" "Configure scan directories"
     printf "  %s%-28s%s %s\n" "$GREEN" "aa completion --dry-run" "$NC" "Preview shell completion edits"
@@ -541,8 +543,9 @@ show_main_menu() {
 
     printf '\r\033[2K\n'
 
-    printf '\r\033[2K%s\n' "$(show_menu_option 1 "Purge        Remove old project artifacts" "$([[ $selected -eq 1 ]] && echo true || echo false)")"
-    printf '\r\033[2K%s\n' "$(show_menu_option 2 "Completion   Setup shell tab completion" "$([[ $selected -eq 2 ]] && echo true || echo false)")"
+    printf '\r\033[2K%s\n' "$(show_menu_option 1 "Clean        Free up disk space from user caches" "$([[ $selected -eq 1 ]] && echo true || echo false)")"
+    printf '\r\033[2K%s\n' "$(show_menu_option 2 "Purge        Remove old project artifacts" "$([[ $selected -eq 2 ]] && echo true || echo false)")"
+    printf '\r\033[2K%s\n' "$(show_menu_option 3 "Completion   Setup shell tab completion" "$([[ $selected -eq 3 ]] && echo true || echo false)")"
 
     if [[ -t 0 ]]; then
         printf '\r\033[2K\n'
@@ -595,19 +598,24 @@ interactive_main_menu() {
 
         case "$key" in
             "UP") ((current_option > 1)) && ((current_option--)) ;;
-            "DOWN") ((current_option < 2)) && ((current_option++)) ;;
+            "DOWN") ((current_option < 3)) && ((current_option++)) ;;
             "ENTER")
                 show_cursor
                 case $current_option in
-                    1) exec "$SCRIPT_DIR/bin/purge.sh" ;;
-                    2) exec "$SCRIPT_DIR/bin/completion.sh" ;;
+                    1) exec "$SCRIPT_DIR/bin/clean.sh" ;;
+                    2) exec "$SCRIPT_DIR/bin/purge.sh" ;;
+                    3) exec "$SCRIPT_DIR/bin/completion.sh" ;;
                 esac
                 ;;
             "CHAR:1")
                 show_cursor
-                exec "$SCRIPT_DIR/bin/purge.sh"
+                exec "$SCRIPT_DIR/bin/clean.sh"
                 ;;
             "CHAR:2")
+                show_cursor
+                exec "$SCRIPT_DIR/bin/purge.sh"
+                ;;
+            "CHAR:3")
                 show_cursor
                 exec "$SCRIPT_DIR/bin/completion.sh"
                 ;;
@@ -652,6 +660,9 @@ main() {
     done
 
     case "${args[0]:-""}" in
+        "clean")
+            exec "$SCRIPT_DIR/bin/clean.sh" "${args[@]:1}"
+            ;;
         "purge")
             exec "$SCRIPT_DIR/bin/purge.sh" "${args[@]:1}"
             ;;

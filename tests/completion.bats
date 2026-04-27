@@ -62,6 +62,7 @@ setup() {
 @test "completion bash script includes all commands" {
 	run "$PROJECT_ROOT/bin/completion.sh" bash
 	[ "$status" -eq 0 ]
+	[[ "$output" == *"clean"* ]]
 	[[ "$output" == *"purge"* ]]
 	[[ "$output" == *"completion"* ]]
 	[[ "$output" == *"update"* ]]

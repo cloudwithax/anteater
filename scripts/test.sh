@@ -234,7 +234,7 @@ echo ""
 
 echo "5. Running integration tests..."
 # Quick syntax check for main scripts
-if bash -n anteater && bash -n bin/purge.sh && bash -n bin/completion.sh; then
+if bash -n anteater && bash -n bin/clean.sh && bash -n bin/purge.sh && bash -n bin/completion.sh; then
     printf "${GREEN}${ICON_SUCCESS} Integration tests passed${NC}\n"
 else
     printf "${RED}${ICON_ERROR} Integration tests failed${NC}\n"
