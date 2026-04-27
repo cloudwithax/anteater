@@ -95,7 +95,7 @@ if [[ $# -eq 0 ]]; then
     if [[ "$current_shell" == "fish" ]]; then
         fish_dir="${HOME}/.config/fish/completions"
         anteater_file="${fish_dir}/anteater.fish"
-        mo_file="${fish_dir}/aa.fish"
+        aa_file="${fish_dir}/aa.fish"
         config_fish="${HOME}/.config/fish/config.fish"
 
         if [[ -z "$completion_name" ]]; then
@@ -110,7 +110,7 @@ if [[ $# -eq 0 ]]; then
         if [[ "${ANTEATER_DRY_RUN:-0}" == "1" ]]; then
             echo -e "${GRAY}${ICON_REVIEW} [DRY RUN] Would write Fish completions to:${NC}"
             echo "  $anteater_file"
-            echo "  $mo_file"
+            echo "  $aa_file"
             echo ""
             echo -e "${GREEN}${ICON_SUCCESS}${NC} Dry run complete, no changes made"
             exit 0
@@ -126,7 +126,7 @@ if [[ $# -eq 0 ]]; then
             echo ""
             echo -e "${GRAY}Will write Fish completions to:${NC}"
             echo "  $anteater_file"
-            echo "  $mo_file"
+            echo "  $aa_file"
             echo ""
             echo -ne "${PURPLE}${ICON_ARROW}${NC} Enable completion for ${GREEN}fish${NC}? ${GRAY}Enter confirm / Q cancel${NC}: "
             IFS= read -r -s -n1 key || key=""
@@ -149,8 +149,8 @@ if [[ $# -eq 0 ]]; then
         mkdir -p "$fish_dir"
         "$completion_name" completion fish > "$anteater_file"
         # aa.fish sources anteater.fish so Fish loads aa completions on `aa<Tab>`
-        printf '# Anteater completions for aa (alias) -- auto-generated, do not edit\n' > "$mo_file"
-        printf 'source %s\n' "$anteater_file" >> "$mo_file"
+        printf '# Anteater completions for aa (alias) -- auto-generated, do not edit\n' > "$aa_file"
+        printf 'source %s\n' "$anteater_file" >> "$aa_file"
 
         if [[ -f "$anteater_file" ]]; then
             echo -e "${GREEN}${ICON_SUCCESS}${NC} Fish completions written to $fish_dir"

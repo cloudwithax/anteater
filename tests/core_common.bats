@@ -25,8 +25,8 @@ setup() {
     mkdir -p "$HOME"
 }
 
-@test "mo_spinner_chars returns default sequence" {
-    result="$(HOME="$HOME" bash --noprofile --norc -c "source '$PROJECT_ROOT/lib/core/common.sh'; mo_spinner_chars")"
+@test "aa_spinner_chars returns default sequence" {
+    result="$(HOME="$HOME" bash --noprofile --norc -c "source '$PROJECT_ROOT/lib/core/common.sh'; aa_spinner_chars")"
     [ "$result" = "|/-\\" ]
 }
 

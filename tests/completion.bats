@@ -108,10 +108,10 @@ setup() {
 @test "completion fish includes both anteater and aa commands" {
 	output="$("$PROJECT_ROOT/bin/completion.sh" fish)"
 	anteater_count=$(echo "$output" | grep -c "complete -f -c anteater")
-	mo_count=$(echo "$output" | grep -c "complete -f -c aa")
+	aa_count=$(echo "$output" | grep -c "complete -f -c aa")
 
 	[ "$anteater_count" -gt 0 ]
-	[ "$mo_count" -gt 0 ]
+	[ "$aa_count" -gt 0 ]
 }
 
 @test "completion auto-install detects zsh" {

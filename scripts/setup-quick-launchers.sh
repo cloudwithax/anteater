@@ -51,10 +51,10 @@ write_raycast_script() {
     local target="$1"
     local title="$2"
     local description="$3"
-    local mo_bin="$4"
+    local aa_bin="$4"
     local subcommand="$5"
 
-    local cmd_for_applescript="${mo_bin//\\/\\\\}"
+    local cmd_for_applescript="${aa_bin//\\/\\\\}"
     cmd_for_applescript="${cmd_for_applescript//\"/\\\"}"
 
     cat > "$target" << EOF
@@ -79,7 +79,7 @@ set -euo pipefail
 echo "🐹 Running ${title}..."
 echo ""
 
-AA_BIN="${mo_bin}"
+AA_BIN="${aa_bin}"
 AA_SUBCOMMAND="${subcommand}"
 AA_BIN_ESCAPED="${cmd_for_applescript}"
 
@@ -244,7 +244,7 @@ EOF
 }
 
 create_raycast_commands() {
-    local mo_bin="$1"
+    local aa_bin="$1"
     local default_dir="$HOME/Library/Application Support/Raycast/script-commands"
     local dir="$default_dir"
     local entry
@@ -257,7 +257,7 @@ create_raycast_commands() {
     mkdir -p "$dir"
     for entry in "${LAUNCHER_COMMAND_SPECS[@]}"; do
         IFS="|" read -r subcommand title description alfred_subtitle <<< "$entry"
-        write_raycast_script "$dir/anteater-${subcommand}.sh" "$title" "$description" "$mo_bin" "$subcommand"
+        write_raycast_script "$dir/anteater-${subcommand}.sh" "$title" "$description" "$aa_bin" "$subcommand"
     done
     log_success "Scripts ready in: $dir"
 
@@ -288,7 +288,7 @@ uuid() {
 }
 
 create_alfred_workflow() {
-    local mo_bin="$1"
+    local aa_bin="$1"
     local prefs_dir="${ALFRED_PREFS_DIR:-$HOME/Library/Application Support/Alfred/Alfred.alfredpreferences}"
     local workflows_dir="$prefs_dir/workflows"
     local entry
@@ -308,7 +308,7 @@ create_alfred_workflow() {
         IFS="|" read -r subcommand title _ subtitle <<< "$entry"
         bundle="fun.tw93.anteater.${subcommand}"
         keyword="${subcommand}"
-        command="\"${mo_bin}\" ${subcommand}"
+        command="\"${aa_bin}\" ${subcommand}"
         local workflow_uid="user.workflow.$(uuid | LC_ALL=C tr '[:upper:]' '[:lower:]')"
         local input_uid
         local action_uid
@@ -411,12 +411,12 @@ main() {
     echo "  Anteater Quick Launchers"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-    local mo_bin
-    mo_bin="$(detect_mo)"
-    log_step "Detected Anteater binary at: ${mo_bin}"
+    local aa_bin
+    aa_bin="$(detect_mo)"
+    log_step "Detected Anteater binary at: ${aa_bin}"
 
-    create_raycast_commands "$mo_bin"
-    create_alfred_workflow "$mo_bin"
+    create_raycast_commands "$aa_bin"
+    create_alfred_workflow "$aa_bin"
 
     echo ""
     log_success "Done! Raycast and Alfred are ready with 5 commands:"
