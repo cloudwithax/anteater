@@ -269,6 +269,7 @@ drain_pending_input() {
         drained=$((drained + 1))
         [[ $drained -gt 100 ]] && break
     done
+    return 0
 }
 
 # Format menu option display
@@ -432,61 +433,4 @@ format_last_used_summary() {
         return 0
     fi
     echo "$value"
-}
-
-# Check if terminal has Full Disk Access
-# Returns 0 if FDA is granted, 1 if denied, 2 if unknown
-has_full_disk_access() {
-    # Cache the result to avoid repeated checks
-    if [[ -n "${ANTEATER_HAS_FDA:-}" ]]; then
-        if [[ "$ANTEATER_HAS_FDA" == "1" ]]; then
-            return 0
-        elif [[ "$ANTEATER_HAS_FDA" == "unknown" ]]; then
-            return 2
-        else
-            return 1
-        fi
-    fi
-
-    # Test access to protected directories that require FDA
-    # Strategy: Try to access directories that are commonly protected
-    # If ANY of them are accessible, we likely have FDA
-    # If ALL fail, we definitely don't have FDA
-    local -a protected_dirs=(
-        "$HOME/Library/Safari/LocalStorage"
-        "$HOME/Library/Mail/V10"
-        "$HOME/Library/Messages/chat.db"
-    )
-
-    local accessible_count=0
-    local tested_count=0
-
-    for test_path in "${protected_dirs[@]}"; do
-        # Only test when the protected path exists
-        if [[ -e "$test_path" ]]; then
-            tested_count=$((tested_count + 1))
-            # Try to stat the ACTUAL protected path - this requires FDA
-            if stat "$test_path" > /dev/null 2>&1; then
-                accessible_count=$((accessible_count + 1))
-            fi
-        fi
-    done
-
-    # Three possible outcomes:
-    # 1. tested_count = 0: Can't determine (test paths don't exist) → unknown
-    # 2. tested_count > 0 && accessible_count > 0: Has FDA → yes
-    # 3. tested_count > 0 && accessible_count = 0: No FDA → no
-    if [[ $tested_count -eq 0 ]]; then
-        # Can't determine - test paths don't exist, treat as unknown
-        export ANTEATER_HAS_FDA="unknown"
-        return 2
-    elif [[ $accessible_count -gt 0 ]]; then
-        # At least one path is accessible → has FDA
-        export ANTEATER_HAS_FDA=1
-        return 0
-    else
-        # Tested paths exist but not accessible → no FDA
-        export ANTEATER_HAS_FDA=0
-        return 1
-    fi
 }

@@ -62,14 +62,12 @@ setup() {
 @test "completion bash script includes all commands" {
 	run "$PROJECT_ROOT/bin/completion.sh" bash
 	[ "$status" -eq 0 ]
-	[[ "$output" == *"optimize"* ]]
-	[[ "$output" == *"clean"* ]]
-	[[ "$output" == *"uninstall"* ]]
-	[[ "$output" == *"analyze"* ]]
-	[[ "$output" == *"status"* ]]
 	[[ "$output" == *"purge"* ]]
-	[[ "$output" == *"touchid"* ]]
 	[[ "$output" == *"completion"* ]]
+	[[ "$output" == *"update"* ]]
+	[[ "$output" == *"remove"* ]]
+	[[ "$output" == *"help"* ]]
+	[[ "$output" == *"version"* ]]
 }
 
 @test "completion bash script supports aa command" {
@@ -94,8 +92,8 @@ setup() {
 @test "completion zsh includes command descriptions" {
 	run "$PROJECT_ROOT/bin/completion.sh" zsh
 	[ "$status" -eq 0 ]
-	[[ "$output" == *"optimize:Check and maintain system"* ]]
-	[[ "$output" == *"clean:Free up disk space"* ]]
+	[[ "$output" == *"purge:Remove old project artifacts"* ]]
+	[[ "$output" == *"completion:Setup shell tab completion"* ]]
 }
 
 @test "completion fish generates valid fish script" {

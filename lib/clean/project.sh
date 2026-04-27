@@ -76,7 +76,7 @@ discover_project_dirs() {
     for path in "${DEFAULT_PURGE_SEARCH_PATHS[@]}"; do
         if [[ -d "$path" ]]; then
             # Resolve to canonical casing to avoid duplicates on
-            # case-insensitive filesystems (macOS APFS).
+            # case-insensitive filesystems.
             discovered+=("$(anteater_purge_resolve_path_case "$path")")
         fi
     done
@@ -135,7 +135,7 @@ EOF
     if [[ ${#paths[@]} -gt 0 ]]; then
         for path in "${paths[@]}"; do
             # Convert $HOME to ~ for portability
-            path="${path/#$HOME/~}"
+            path="${path/#$HOME/\~}"
             if ! printf '%s\n' "$path" >> "$tmp_file"; then
                 rm -f "$tmp_file" 2> /dev/null || true
                 return 1
@@ -154,7 +154,7 @@ EOF
 warn_purge_config_write_failure() {
     [[ -t 1 ]] || return 0
     [[ -z "${_PURGE_DISCOVERY_SILENT:-}" ]] || return 0
-    echo -e "${YELLOW}${ICON_WARNING}${NC} Could not save purge paths to ${PURGE_CONFIG_FILE/#$HOME/~}, using discovered paths for this run" >&2
+    echo -e "${YELLOW}${ICON_WARNING}${NC} Could not save purge paths to ${PURGE_CONFIG_FILE/#$HOME/\~}, using discovered paths for this run" >&2
 }
 
 # Save discovered paths to config.
@@ -204,7 +204,7 @@ load_purge_config
 
 format_purge_target_path() {
     local path="$1"
-    echo "${path/#$HOME/~}"
+    echo "${path/#$HOME/\~}"
 }
 
 compact_purge_menu_path() {
@@ -273,9 +273,9 @@ is_safe_project_artifact() {
     fi
 
     if [[ "$path" != "$search_path/"* ]]; then
-        # fd may emit physical/canonical paths (for example /private/var)
-        # while configured search roots use symlink aliases (for example /var).
-        # Compare physical paths as a fallback to avoid false negatives.
+        # fd may emit physical/canonical paths while configured search roots
+        # use symlink aliases. Compare physical paths as a fallback to avoid
+        # false negatives.
         local physical_path=""
         local physical_search_path=""
         if [[ -d "$path" && -d "$search_path" ]]; then
@@ -390,12 +390,6 @@ is_protected_purge_artifact() {
         vendor)
             is_protected_vendor_dir "$path"
             return $?
-            ;;
-        DerivedData)
-            # Protect Xcode global DerivedData in ~/Library/Developer/Xcode/
-            # Only allow purging DerivedData within project directories
-            [[ "$path" == *"/Library/Developer/Xcode/DerivedData"* ]] && return 0
-            return 1
             ;;
     esac
 
@@ -1267,7 +1261,7 @@ clean_project_artifacts() {
         fi
 
         # Convert to ~ format for cleaner display
-        result="${result/#$HOME/~}"
+        result="${result/#$HOME/\~}"
         echo "$result"
     }
 

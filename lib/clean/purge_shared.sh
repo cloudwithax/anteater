@@ -38,11 +38,8 @@ readonly ANTEATER_PURGE_TARGETS=(
     ".svelte-kit"   # SvelteKit
     ".astro"        # Astro
     "coverage"      # Code coverage reports
-    "DerivedData"   # Xcode
-    "Pods"          # CocoaPods
-    ".cxx"          # React Native Android NDK build cache
+    ".cxx"          # Android NDK build cache
     ".expo"         # Expo
-    ".build"        # Swift Package Manager
 )
 
 readonly ANTEATER_PURGE_DEFAULT_SEARCH_PATHS=(
@@ -125,7 +122,7 @@ anteater_purge_quick_hint_target_names() {
 }
 
 # Resolve a directory path to its canonical filesystem casing.
-# On case-insensitive macOS (APFS), ~/Code and ~/code point to the same
+# On case-insensitive filesystems, ~/Code and ~/code can point to the same
 # directory but with different display names.  This function returns the
 # real (on-disk) path so that string comparisons work correctly for dedup.
 anteater_purge_resolve_path_case() {

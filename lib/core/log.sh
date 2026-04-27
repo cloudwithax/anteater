@@ -21,9 +21,13 @@ fi
 # Logging Configuration
 # ============================================================================
 
-readonly LOG_FILE="${HOME}/Library/Logs/anteater/anteater.log"
-readonly DEBUG_LOG_FILE="${HOME}/Library/Logs/anteater/anteater_debug_session.log"
-readonly OPERATIONS_LOG_FILE="${HOME}/Library/Logs/anteater/operations.log"
+_anteater_log_dir() {
+    local base="${ANTEATER_LOG_DIR:-${XDG_STATE_HOME:-$HOME/.local/state}/anteater/logs}"
+    printf '%s\n' "$base"
+}
+readonly LOG_FILE="$(_anteater_log_dir)/anteater.log"
+readonly DEBUG_LOG_FILE="$(_anteater_log_dir)/anteater_debug_session.log"
+readonly OPERATIONS_LOG_FILE="$(_anteater_log_dir)/operations.log"
 readonly LOG_MAX_SIZE_DEFAULT=1048576   # 1MB
 readonly OPLOG_MAX_SIZE_DEFAULT=5242880 # 5MB
 
@@ -320,9 +324,11 @@ log_system_info() {
         echo "User: $USER"
         echo "Hostname: $(hostname)"
         echo "Architecture: $(uname -m)"
-        echo "Kernel: $(uname -r)"
-        if command -v sw_vers > /dev/null; then
-            echo "macOS: $(sw_vers -productVersion), $(sw_vers -buildVersion)"
+        echo "Kernel: $(uname -s) $(uname -r)"
+        if [[ -r /etc/os-release ]]; then
+            local pretty
+            pretty=$(grep -E '^PRETTY_NAME=' /etc/os-release 2> /dev/null | head -1 | cut -d= -f2- | tr -d '"' || true)
+            [[ -n "$pretty" ]] && echo "OS: $pretty"
         fi
         echo "Shell: ${SHELL:-unknown}, ${TERM:-unknown}"
 

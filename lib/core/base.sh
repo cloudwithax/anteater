@@ -44,27 +44,6 @@ readonly ICON_NAV_DOWN="↓"
 readonly ICON_INFO="ℹ"
 
 # ============================================================================
-# LaunchServices Utility
-# ============================================================================
-
-# Locate the lsregister binary (path varies across macOS versions).
-get_lsregister_path() {
-    local -a candidates=(
-        "/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister"
-        "/System/Library/CoreServices/Frameworks/LaunchServices.framework/Support/lsregister"
-    )
-    local candidate=""
-    for candidate in "${candidates[@]}"; do
-        if [[ -x "$candidate" ]]; then
-            echo "$candidate"
-            return 0
-        fi
-    done
-    echo ""
-    return 0
-}
-
-# ============================================================================
 # Global Configuration Constants
 # ============================================================================
 readonly ANTEATER_TEMP_FILE_AGE_DAYS=7       # Temp file retention (days)
@@ -74,9 +53,7 @@ readonly ANTEATER_MAIL_DOWNLOADS_MIN_KB=5120 # Mail attachment size threshold
 readonly ANTEATER_MAIL_AGE_DAYS=30           # Mail attachment retention (days)
 readonly ANTEATER_LOG_AGE_DAYS=7             # Log retention (days)
 readonly ANTEATER_CRASH_REPORT_AGE_DAYS=7    # Crash report retention (days)
-readonly ANTEATER_SAVED_STATE_AGE_DAYS=30    # Saved state retention (days) - increased for safety
-readonly ANTEATER_TM_BACKUP_SAFE_HOURS=48    # TM backup safety window (hours)
-readonly ANTEATER_MAX_DS_STORE_FILES=500     # Max .DS_Store files to clean per scan
+readonly ANTEATER_SAVED_STATE_AGE_DAYS=30    # Saved state retention (days)
 readonly ANTEATER_MAX_ORPHAN_ITERATIONS=100  # Max iterations for orphaned app data scan
 readonly ANTEATER_ONE_GIB_KB=$((1024 * 1024))
 readonly ANTEATER_ONE_GB_BYTES=1000000000
@@ -84,49 +61,50 @@ readonly ANTEATER_ONE_GB_BYTES=1000000000
 # ============================================================================
 # Whitelist Configuration
 # ============================================================================
-readonly FINDER_METADATA_SENTINEL="FINDER_METADATA"
 declare -a DEFAULT_WHITELIST_PATTERNS=(
-    "$HOME/Library/Caches/ms-playwright*"
     "$HOME/.cache/huggingface*"
     "$HOME/.m2/repository/*"
     "$HOME/.gradle/caches/*"
     "$HOME/.gradle/daemon/*"
     "$HOME/.ollama/models/*"
-    "$HOME/Library/Caches/com.nssurge.surge-mac/*"
-    "$HOME/Library/Application Support/com.nssurge.surge-mac/*"
-    "$HOME/Library/Caches/org.R-project.R/R/renv/*"
-    "$HOME/Library/Caches/pypoetry/virtualenvs*"
-    "$HOME/Library/Caches/JetBrains*"
-    "$HOME/Library/Caches/com.jetbrains.toolbox*"
-    "$HOME/Library/Caches/tealdeer/tldr-pages"
-    "$HOME/Library/Application Support/JetBrains*"
-    "$HOME/Library/Caches/com.apple.finder"
-    "$HOME/Library/Mobile Documents*"
-    # System-critical caches that affect macOS functionality and stability
-    # CRITICAL: Removing these will cause system search and UI issues
-    "$HOME/Library/Caches/com.apple.FontRegistry*"
-    "$HOME/Library/Caches/com.apple.spotlight*"
-    "$HOME/Library/Caches/com.apple.Spotlight*"
-    "$HOME/Library/Caches/CloudKit*"
-    "$FINDER_METADATA_SENTINEL"
+    "$HOME/.cache/JetBrains*"
+    "$HOME/.cache/pypoetry/virtualenvs*"
+    "$HOME/.cache/ms-playwright*"
+    "$HOME/.local/share/JetBrains*"
 )
 
 declare -a DEFAULT_OPTIMIZE_WHITELIST_PATTERNS=(
-    "check_brew_health"
-    "check_touchid"
     "check_git_config"
 )
 
 # ============================================================================
-# BSD Stat Compatibility
+# Stat Compatibility (GNU on Linux, BSD on OpenBSD)
 # ============================================================================
-readonly STAT_BSD="/usr/bin/stat"
+
+# Detect once which stat dialect this system speaks. GNU stat accepts -c,
+# BSD stat accepts -f. Cached in $_ANTEATER_STAT_DIALECT.
+_anteater_stat_dialect() {
+    if [[ -n "${_ANTEATER_STAT_DIALECT:-}" ]]; then
+        printf '%s\n' "$_ANTEATER_STAT_DIALECT"
+        return
+    fi
+    if stat -c '%s' / > /dev/null 2>&1; then
+        _ANTEATER_STAT_DIALECT=gnu
+    else
+        _ANTEATER_STAT_DIALECT=bsd
+    fi
+    export _ANTEATER_STAT_DIALECT
+    printf '%s\n' "$_ANTEATER_STAT_DIALECT"
+}
 
 # Get file size in bytes
 get_file_size() {
-    local file="$1"
-    local result
-    result=$($STAT_BSD -f%z "$file" 2> /dev/null)
+    local file="$1" result
+    if [[ "$(_anteater_stat_dialect)" == "gnu" ]]; then
+        result=$(stat -c '%s' "$file" 2> /dev/null)
+    else
+        result=$(stat -f '%z' "$file" 2> /dev/null)
+    fi
     echo "${result:-0}"
 }
 
@@ -138,7 +116,11 @@ get_file_mtime() {
         return
     }
     local result
-    result=$($STAT_BSD -f%m "$file" 2> /dev/null || echo "")
+    if [[ "$(_anteater_stat_dialect)" == "gnu" ]]; then
+        result=$(stat -c '%Y' "$file" 2> /dev/null || echo "")
+    else
+        result=$(stat -f '%m' "$file" 2> /dev/null || echo "")
+    fi
     if [[ "$result" =~ ^[0-9]+$ ]]; then
         echo "$result"
     else
@@ -167,89 +149,58 @@ get_epoch_seconds() {
 # Get file owner username
 get_file_owner() {
     local file="$1"
-    $STAT_BSD -f%Su "$file" 2> /dev/null || echo ""
+    if [[ "$(_anteater_stat_dialect)" == "gnu" ]]; then
+        stat -c '%U' "$file" 2> /dev/null || echo ""
+    else
+        stat -f '%Su' "$file" 2> /dev/null || echo ""
+    fi
+}
+
+# Get file mode bits in octal (e.g., 644)
+get_file_mode() {
+    local file="$1"
+    if [[ "$(_anteater_stat_dialect)" == "gnu" ]]; then
+        stat -c '%a' "$file" 2> /dev/null || echo ""
+    else
+        stat -f '%Mp%Lp' "$file" 2> /dev/null || echo ""
+    fi
 }
 
 # ============================================================================
 # System Utilities
 # ============================================================================
 
-# Check if System Integrity Protection is enabled
-# Returns: 0 if SIP is enabled, 1 if disabled or cannot determine
-is_sip_enabled() {
-    if ! command -v csrutil > /dev/null 2>&1; then
-        return 0
-    fi
-
-    local sip_status
-    sip_status=$(csrutil status 2> /dev/null || echo "")
-
-    if echo "$sip_status" | grep -qi "enabled"; then
-        return 0
-    else
-        return 1
-    fi
-}
-
-# Detect CPU architecture
-# Returns: "Apple Silicon" or "Intel"
+# Detect CPU architecture (uname -m result, e.g. x86_64, aarch64)
 detect_architecture() {
     if [[ -n "${ANTEATER_ARCH_CACHE:-}" ]]; then
         echo "$ANTEATER_ARCH_CACHE"
         return 0
     fi
-
-    if [[ "$(uname -m)" == "arm64" ]]; then
-        export ANTEATER_ARCH_CACHE="Apple Silicon"
-    else
-        export ANTEATER_ARCH_CACHE="Intel"
-    fi
+    export ANTEATER_ARCH_CACHE="$(uname -m 2> /dev/null || echo unknown)"
     echo "$ANTEATER_ARCH_CACHE"
 }
 
 # Get free disk space on root volume
 # Returns: human-readable string (e.g., "100G")
 get_free_space() {
-    local target="/"
-    if [[ -d "/System/Volumes/Data" ]]; then
-        target="/System/Volumes/Data"
-    fi
-
-    df -h "$target" | awk 'NR==2 {print $4}'
-}
-
-# Get Darwin kernel major version (e.g., 24 for 24.2.0)
-# Returns 999 on failure to adopt conservative behavior (assume modern system)
-get_darwin_major() {
-    if [[ -n "${ANTEATER_DARWIN_MAJOR_CACHE:-}" ]]; then
-        echo "$ANTEATER_DARWIN_MAJOR_CACHE"
-        return 0
-    fi
-
-    local kernel
-    kernel=$(uname -r 2> /dev/null || true)
-    local major="${kernel%%.*}"
-    if [[ ! "$major" =~ ^[0-9]+$ ]]; then
-        # Return high number to skip potentially dangerous operations on unknown systems
-        major=999
-    fi
-    export ANTEATER_DARWIN_MAJOR_CACHE="$major"
-    echo "$major"
-}
-
-# Check if Darwin kernel major version meets minimum
-is_darwin_ge() {
-    local minimum="$1"
-    local major
-    major=$(get_darwin_major)
-    [[ "$major" -ge "$minimum" ]]
+    df -h / | awk 'NR==2 {print $4}'
 }
 
 # Get optimal parallel jobs for operation type (scan|io|compute|default)
 get_optimal_parallel_jobs() {
     local operation_type="${1:-default}"
     if [[ -z "${ANTEATER_CPU_CORES_CACHE:-}" ]]; then
-        export ANTEATER_CPU_CORES_CACHE=$(sysctl -n hw.ncpu 2> /dev/null || echo 4)
+        local cores=""
+        if command -v nproc > /dev/null 2>&1; then
+            cores=$(nproc 2> /dev/null || echo "")
+        fi
+        if [[ -z "$cores" ]]; then
+            cores=$(sysctl -n hw.ncpu 2> /dev/null || echo "")
+        fi
+        if [[ -z "$cores" ]]; then
+            cores=$(getconf _NPROCESSORS_ONLN 2> /dev/null || echo 4)
+        fi
+        export ANTEATER_CPU_CORES_CACHE="$cores"
     fi
     local cpu_cores="$ANTEATER_CPU_CORES_CACHE"
     case "$operation_type" in
@@ -330,12 +281,12 @@ get_user_home() {
         return 0
     fi
 
-    if command -v dscl > /dev/null 2>&1; then
-        home=$(dscl . -read "/Users/$user" NFSHomeDirectory 2> /dev/null | awk '{print $2}' | head -1 || true)
+    if command -v getent > /dev/null 2>&1; then
+        home=$(getent passwd "$user" 2> /dev/null | awk -F: '{print $6}' | head -1 || true)
     fi
 
-    if [[ -z "$home" ]]; then
-        home=$(id -P "$user" 2> /dev/null | cut -d: -f9 || true)
+    if [[ -z "$home" && -r /etc/passwd ]]; then
+        home=$(awk -F: -v u="$user" '$1==u {print $6; exit}' /etc/passwd 2> /dev/null || true)
     fi
 
     if [[ "$home" == "~"* ]]; then
@@ -389,12 +340,18 @@ ensure_user_dir() {
         return 0
     fi
 
+    local stat_dialect
+    stat_dialect=$(_anteater_stat_dialect)
     local dir="$target_path"
     while [[ -n "$dir" && "$dir" != "/" ]]; do
         # Early stop: if ownership is already correct, no need to continue up the tree
         if [[ -d "$dir" ]]; then
             local current_uid
-            current_uid=$("$STAT_BSD" -f%u "$dir" 2> /dev/null || echo "")
+            if [[ "$stat_dialect" == "gnu" ]]; then
+                current_uid=$(stat -c '%u' "$dir" 2> /dev/null || echo "")
+            else
+                current_uid=$(stat -f '%u' "$dir" 2> /dev/null || echo "")
+            fi
             if [[ "$current_uid" == "$owner_uid" ]]; then
                 break
             fi
@@ -462,64 +419,7 @@ ensure_user_file() {
 # Formatting Utilities
 # ============================================================================
 
-# Get brand-friendly localized name for an application
-get_brand_name() {
-    local name="$1"
-
-    # Detect if system primary language is Chinese (Cached)
-    if [[ -z "${ANTEATER_IS_CHINESE_SYSTEM:-}" ]]; then
-        local sys_lang
-        sys_lang=$(defaults read -g AppleLanguages 2> /dev/null | grep -o 'zh-Hans\|zh-Hant\|zh' | head -1 || echo "")
-        if [[ -n "$sys_lang" ]]; then
-            export ANTEATER_IS_CHINESE_SYSTEM="true"
-        else
-            export ANTEATER_IS_CHINESE_SYSTEM="false"
-        fi
-    fi
-
-    local is_chinese="${ANTEATER_IS_CHINESE_SYSTEM}"
-
-    # Return localized names based on system language
-    if [[ "$is_chinese" == true ]]; then
-        # Chinese system - prefer Chinese names
-        case "$name" in
-            "qiyimac" | "iQiyi") echo "爱奇艺" ;;
-            "wechat" | "WeChat") echo "微信" ;;
-            "QQ") echo "QQ" ;;
-            "VooV Meeting") echo "腾讯会议" ;;
-            "dingtalk" | "DingTalk") echo "钉钉" ;;
-            "NeteaseMusic" | "NetEase Music") echo "网易云音乐" ;;
-            "BaiduNetdisk" | "Baidu NetDisk") echo "百度网盘" ;;
-            "alipay" | "Alipay") echo "支付宝" ;;
-            "taobao" | "Taobao") echo "淘宝" ;;
-            "futunn" | "Futu NiuNiu") echo "富途牛牛" ;;
-            "tencent lemon" | "Tencent Lemon Cleaner" | "Tencent Lemon") echo "腾讯柠檬清理" ;;
-            *) echo "$name" ;;
-        esac
-    else
-        # Non-Chinese system - use English names
-        case "$name" in
-            "qiyimac" | "爱奇艺") echo "iQiyi" ;;
-            "wechat" | "微信") echo "WeChat" ;;
-            "QQ") echo "QQ" ;;
-            "腾讯会议") echo "VooV Meeting" ;;
-            "dingtalk" | "钉钉") echo "DingTalk" ;;
-            "网易云音乐") echo "NetEase Music" ;;
-            "百度网盘") echo "Baidu NetDisk" ;;
-            "alipay" | "支付宝") echo "Alipay" ;;
-            "taobao" | "淘宝") echo "Taobao" ;;
-            "富途牛牛") echo "Futu NiuNiu" ;;
-            "腾讯柠檬清理" | "Tencent Lemon Cleaner") echo "Tencent Lemon" ;;
-            "keynote" | "Keynote") echo "Keynote" ;;
-            "pages" | "Pages") echo "Pages" ;;
-            "numbers" | "Numbers") echo "Numbers" ;;
-            *) echo "$name" ;;
-        esac
-    fi
-}
-
-# Convert bytes to human-readable format (e.g., 1.5GB)
-# macOS (since Snow Leopard) uses Base-10 calculation (1 KB = 1000 bytes)
+# Convert bytes to human-readable format (e.g., 1.5GB), Base-10 (1 KB = 1000 B)
 bytes_to_human() {
     local bytes="$1"
     [[ "$bytes" =~ ^[0-9]+$ ]] || {
@@ -673,8 +573,8 @@ register_temp_dir() {
     ANTEATER_TEMP_DIRS+=("$1")
 }
 
-# Create temp file with prefix (for analyze.sh compatibility)
-# Compatible with both BSD mktemp (macOS default) and GNU mktemp (coreutils)
+# Create temp file with prefix.
+# Compatible with both GNU mktemp (coreutils) and BSD mktemp (OpenBSD).
 mktemp_file() {
     local prefix="${1:-anteater}"
     local temp

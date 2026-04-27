@@ -69,13 +69,16 @@ teardown() {
     run bash -c "source '$PROJECT_ROOT/lib/core/common.sh'; validate_path_for_deletion '/'"
     [ "$status" -eq 1 ]
 
-    run bash -c "source '$PROJECT_ROOT/lib/core/common.sh'; validate_path_for_deletion '/System'"
+    run bash -c "source '$PROJECT_ROOT/lib/core/common.sh'; validate_path_for_deletion '/lib'"
     [ "$status" -eq 1 ]
 
     run bash -c "source '$PROJECT_ROOT/lib/core/common.sh'; validate_path_for_deletion '/usr/bin'"
     [ "$status" -eq 1 ]
 
     run bash -c "source '$PROJECT_ROOT/lib/core/common.sh'; validate_path_for_deletion '/etc'"
+    [ "$status" -eq 1 ]
+
+    run bash -c "source '$PROJECT_ROOT/lib/core/common.sh'; validate_path_for_deletion '/boot'"
     [ "$status" -eq 1 ]
 }
 
@@ -85,13 +88,13 @@ teardown() {
 }
 
 @test "safe_remove validates path before deletion" {
-    run bash -c "source '$PROJECT_ROOT/lib/core/common.sh'; safe_remove '/System/test' 2>&1"
+    run bash -c "source '$PROJECT_ROOT/lib/core/common.sh'; safe_remove '/lib/test' 2>&1"
     [ "$status" -eq 1 ]
 }
 
 @test "validate_path_for_deletion rejects symlink to protected system path" {
     local link_path="$TEST_DIR/system-link"
-    ln -s "/System" "$link_path"
+    ln -s "/lib" "$link_path"
 
     run bash -c "source '$PROJECT_ROOT/lib/core/common.sh'; validate_path_for_deletion '$link_path' 2>&1"
     [ "$status" -eq 1 ]
@@ -136,7 +139,7 @@ teardown() {
 }
 
 @test "safe_remove in silent mode suppresses error output" {
-    run bash -c "source '$PROJECT_ROOT/lib/core/common.sh'; safe_remove '/System/test' true 2>&1"
+    run bash -c "source '$PROJECT_ROOT/lib/core/common.sh'; safe_remove '/lib/test' true 2>&1"
     [ "$status" -eq 1 ]
 }
 
@@ -202,8 +205,4 @@ teardown() {
     run bash -c "source '$PROJECT_ROOT/lib/core/common.sh'; echo \$ANTEATER_MAX_PARALLEL_JOBS"
     [ "$status" -eq 0 ]
     [ "$output" = "15" ]
-
-    run bash -c "source '$PROJECT_ROOT/lib/core/common.sh'; echo \$ANTEATER_TM_BACKUP_SAFE_HOURS"
-    [ "$status" -eq 0 ]
-    [ "$output" = "48" ]
 }

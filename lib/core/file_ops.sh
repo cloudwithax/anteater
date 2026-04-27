@@ -11,7 +11,7 @@ fi
 readonly ANTEATER_FILE_OPS_LOADED=1
 
 # Error codes for removal operations
-readonly ANTEATER_ERR_SIP_PROTECTED=10
+readonly ANTEATER_ERR_NOT_PERMITTED=10
 readonly ANTEATER_ERR_AUTH_FAILED=11
 readonly ANTEATER_ERR_READONLY_FS=12
 
@@ -92,10 +92,10 @@ validate_path_for_deletion() {
         # Validate resolved target against protected paths
         if [[ -n "$resolved_target" ]]; then
             case "$resolved_target" in
-                / | /System | /System/* | /bin | /bin/* | /sbin | /sbin/* | \
+                / | /bin | /bin/* | /sbin | /sbin/* | \
                     /usr | /usr/bin | /usr/bin/* | /usr/lib | /usr/lib/* | \
-                    /etc | /etc/* | /private/etc | /private/etc/* | \
-                    /Library/Extensions | /Library/Extensions/*)
+                    /usr/sbin | /usr/sbin/* | /lib | /lib/* | /lib64 | /lib64/* | \
+                    /boot | /boot/* | /etc | /etc/*)
                     log_error "Symlink points to protected system path: $path -> $resolved_target"
                     return 1
                     ;;
@@ -123,44 +123,28 @@ validate_path_for_deletion() {
         return 1
     fi
 
-    # Allow deletion of coresymbolicationd cache (safe system cache that can be rebuilt)
+    # Allow known safe paths under /tmp and /var
     case "$path" in
-        /System/Library/Caches/com.apple.coresymbolicationd/data | /System/Library/Caches/com.apple.coresymbolicationd/data/*)
-            return 0
-            ;;
-    esac
-
-    # Allow known safe paths under /private
-    case "$path" in
-        /private/tmp | /private/tmp/* | \
-            /private/var/tmp | /private/var/tmp/* | \
-            /private/var/log | /private/var/log/* | \
-            /private/var/folders | /private/var/folders/* | \
-            /private/var/db/diagnostics | /private/var/db/diagnostics/* | \
-            /private/var/db/DiagnosticPipeline | /private/var/db/DiagnosticPipeline/* | \
-            /private/var/db/powerlog | /private/var/db/powerlog/* | \
-            /private/var/db/reportmemoryexception | /private/var/db/reportmemoryexception/* | \
-            /private/var/db/receipts/*.bom | /private/var/db/receipts/*.plist)
+        /tmp | /tmp/* | \
+            /var/tmp | /var/tmp/* | \
+            /var/log | /var/log/* | \
+            /var/cache | /var/cache/*)
             return 0
             ;;
     esac
 
     # Check path isn't critical system directory
     case "$path" in
-        / | /bin | /bin/* | /sbin | /sbin/* | /usr | /usr/bin | /usr/bin/* | /usr/sbin | /usr/sbin/* | /usr/lib | /usr/lib/* | /System | /System/* | /Library/Extensions)
+        / | /bin | /bin/* | /sbin | /sbin/* | /usr | /usr/bin | /usr/bin/* | /usr/sbin | /usr/sbin/* | /usr/lib | /usr/lib/* | /usr/lib64 | /usr/lib64/* | /lib | /lib/* | /lib64 | /lib64/* | /boot | /boot/*)
             log_error "Path validation failed: critical system directory: $path"
             return 1
             ;;
-        /private)
-            log_error "Path validation failed: critical system directory: $path"
-            return 1
-            ;;
-        /etc | /etc/* | /private/etc | /private/etc/*)
+        /etc | /etc/*)
             log_error "Path validation failed: /etc contains critical system files: $path"
             return 1
             ;;
-        /var | /var/db | /var/db/* | /private/var | /private/var/db | /private/var/db/*)
-            log_error "Path validation failed: /var/db contains system databases: $path"
+        /var | /var/lib | /var/lib/*)
+            log_error "Path validation failed: /var/lib contains system state: $path"
             return 1
             ;;
     esac
@@ -216,7 +200,7 @@ safe_remove() {
 
                 if [[ -f "$path" || -d "$path" ]] && ! [[ -L "$path" ]]; then
                     local mod_time
-                    mod_time=$(stat -f%m "$path" 2> /dev/null || echo "0")
+                    mod_time=$(get_file_mtime "$path" 2> /dev/null || echo "0")
                     local now
                     now=$(date +%s 2> /dev/null || echo "0")
                     if [[ "$mod_time" -gt 0 && "$now" -gt 0 ]]; then
@@ -387,8 +371,8 @@ safe_sudo_remove() {
 
     case "$output" in
         *"Operation not permitted"*)
-            log_operation "${ANTEATER_CURRENT_COMMAND:-clean}" "FAILED" "$path" "sip/mdm protected"
-            return "$ANTEATER_ERR_SIP_PROTECTED"
+            log_operation "${ANTEATER_CURRENT_COMMAND:-clean}" "FAILED" "$path" "operation not permitted"
+            return "$ANTEATER_ERR_NOT_PERMITTED"
             ;;
         *"Read-only file system"*)
             log_operation "${ANTEATER_CURRENT_COMMAND:-clean}" "FAILED" "$path" "readonly filesystem"
@@ -410,7 +394,7 @@ safe_sudo_remove() {
 # Unified deletion helper (Trash + permanent routing with forensic log)
 # ============================================================================
 
-# Route a deletion through either macOS Trash or permanent rm, while logging
+# Route a deletion through either the XDG Trash or permanent rm, while logging
 # every call for forensic review. Designed for destructive paths where undo
 # matters (e.g. uninstall). Not used by cache-clean paths.
 #
@@ -420,9 +404,9 @@ safe_sudo_remove() {
 #   ANTEATER_DELETE_MODE      "permanent" (default) or "trash"
 #   ANTEATER_DRY_RUN=1        Log intent, do not delete
 #   ANTEATER_TEST_TRASH_DIR   Test-only override; Trash moves go here via `mv`
-#                         instead of Finder/trash CLI. Required for bats.
+#                         instead of trash-cli/gio. Required for bats.
 #   ANTEATER_DELETE_LOG       Override the log file path (default:
-#                         ~/Library/Logs/anteater/deletions.log)
+#                         $XDG_STATE_HOME/anteater/logs/deletions.log)
 #
 # Returns 0 on success, 1 on failure. Always appends a tab-separated line to
 # the deletions log: <iso_ts>\t<mode>\t<size_kb>\t<status>\t<path>.
@@ -516,8 +500,13 @@ anteater_delete() {
     return "$rc"
 }
 
-# Move a path to the macOS Trash. Test harnesses set ANTEATER_TEST_TRASH_DIR to
-# redirect the move to a tmpdir, avoiding any Finder/osascript interaction.
+# Move a path to the user's Trash. Test harnesses set ANTEATER_TEST_TRASH_DIR
+# to redirect the move to a tmpdir.
+#
+# Resolution order:
+#   1. trash-cli (`trash` / `trash-put`) — XDG trash spec
+#   2. gio trash (GNOME / glib)
+#   3. kioclient5 (KDE) move to trash:/
 _anteater_move_to_trash() {
     local path="$1"
     local needs_sudo="${2:-false}"
@@ -529,39 +518,31 @@ _anteater_move_to_trash() {
         return $?
     fi
 
-    # Blocked in test mode so uninstall tests never hit Finder/AppleScript.
     if [[ "${ANTEATER_TEST_NO_AUTH:-0}" == "1" ]]; then
         return 1
     fi
 
-    # Prefer the `trash` CLI (Homebrew formula) when available, it's faster
-    # and does not need Finder running. Fall back to AppleScript, which
-    # ships with macOS but prompts for auth on root-owned targets.
-    if command -v trash > /dev/null 2>&1; then
-        if [[ "$needs_sudo" == "true" ]]; then
-            sudo trash "$path" > /dev/null 2>&1 && return 0
-        else
-            trash "$path" > /dev/null 2>&1 && return 0
-        fi
-    fi
+    local sudo_prefix=()
+    [[ "$needs_sudo" == "true" ]] && sudo_prefix=(sudo)
 
-    # AppleScript fallback. Pass the path via argv so special chars (quotes,
-    # backslashes) cannot break out of the quoted string.
-    osascript - "$path" > /dev/null 2>&1 << 'APPLESCRIPT'
-on run argv
-    set p to POSIX file (item 1 of argv)
-    tell application "Finder"
-        delete p
-    end tell
-end run
-APPLESCRIPT
+    if command -v trash-put > /dev/null 2>&1; then
+        "${sudo_prefix[@]}" trash-put -- "$path" > /dev/null 2>&1 && return 0
+    fi
+    if command -v trash > /dev/null 2>&1; then
+        "${sudo_prefix[@]}" trash -- "$path" > /dev/null 2>&1 && return 0
+    fi
+    if command -v gio > /dev/null 2>&1; then
+        "${sudo_prefix[@]}" gio trash -- "$path" > /dev/null 2>&1 && return 0
+    fi
+    if command -v kioclient5 > /dev/null 2>&1; then
+        "${sudo_prefix[@]}" kioclient5 move "$path" trash:/ > /dev/null 2>&1 && return 0
+    fi
+    return 1
 }
 
-# Batched Trash move for non-sudo, non-symlink paths. Removes the per-file
-# subprocess fan-out that made AppleScript-fallback uninstalls feel frozen
-# (100 files * ~1s each). Returns 0 only when the entire batch landed in the
-# Trash; callers must fall back to the per-file path on non-zero so nothing
-# is silently skipped.
+# Batched Trash move. Returns 0 only when the entire batch lands in the Trash;
+# callers must fall back to per-file removal on non-zero so nothing is silently
+# skipped.
 _anteater_move_to_trash_batch() {
     local -a paths=("$@")
     [[ ${#paths[@]} -eq 0 ]] && return 0
@@ -582,20 +563,16 @@ _anteater_move_to_trash_batch() {
         return 1
     fi
 
-    if command -v trash > /dev/null 2>&1; then
-        trash "${paths[@]}" > /dev/null 2>&1 && return 0
+    if command -v trash-put > /dev/null 2>&1; then
+        trash-put -- "${paths[@]}" > /dev/null 2>&1 && return 0
     fi
-
-    # AppleScript fallback: build one POSIX-file list and tell Finder once.
-    osascript - "${paths[@]}" > /dev/null 2>&1 << 'APPLESCRIPT'
-on run argv
-    set posixList to {}
-    repeat with a in argv
-        set end of posixList to POSIX file (a as text)
-    end repeat
-    tell application "Finder" to delete posixList
-end run
-APPLESCRIPT
+    if command -v trash > /dev/null 2>&1; then
+        trash -- "${paths[@]}" > /dev/null 2>&1 && return 0
+    fi
+    if command -v gio > /dev/null 2>&1; then
+        gio trash -- "${paths[@]}" > /dev/null 2>&1 && return 0
+    fi
+    return 1
 }
 
 _anteater_delete_log() {
@@ -604,7 +581,7 @@ _anteater_delete_log() {
     local status="$3"
     local target="$4"
 
-    local log_file="${ANTEATER_DELETE_LOG:-$HOME/Library/Logs/anteater/deletions.log}"
+    local log_file="${ANTEATER_DELETE_LOG:-${ANTEATER_LOG_DIR:-$HOME/.local/state/anteater/logs}/deletions.log}"
     local log_dir
     log_dir=$(dirname "$log_file")
 
@@ -749,18 +726,6 @@ get_path_size_kb() {
         return
     }
 
-    # For .app bundles, prefer mdls logical size as it matches Finder
-    # (APFS clone/sparse files make 'du' severely underreport apps like Xcode)
-    if [[ "$path" == *.app || "$path" == *.app/ ]]; then
-        local mdls_size
-        mdls_size=$(mdls -name kMDItemLogicalSize -raw "$path" 2> /dev/null || true)
-        if [[ "$mdls_size" =~ ^[0-9]+$ && "$mdls_size" -gt 0 ]]; then
-            # Return in KB
-            echo "$((mdls_size / 1024))"
-            return
-        fi
-    fi
-
     local size
     size=$(command du -skP "$path" 2> /dev/null | awk 'NR==1 {print $1; exit}' || true)
 
@@ -794,31 +759,23 @@ diagnose_removal_failure() {
 
     local reason=""
     local suggestion=""
-    local touchid_file="/etc/pam.d/sudo"
 
     case "$exit_code" in
-        "$ANTEATER_ERR_SIP_PROTECTED")
-            reason="protected by macOS (SIP/MDM)"
+        "$ANTEATER_ERR_NOT_PERMITTED")
+            reason="operation not permitted"
+            suggestion="File may be immutable (chattr +i) or in a protected mount"
             ;;
         "$ANTEATER_ERR_AUTH_FAILED")
             reason="authentication failed"
-            if [[ -f "$touchid_file" ]] && grep -q "pam_tid.so" "$touchid_file" 2> /dev/null; then
-                suggestion="Check your credentials or restart Terminal"
-            else
-                suggestion="Try 'anteater touchid' to enable fingerprint auth"
-            fi
+            suggestion="Check your credentials or restart your terminal"
             ;;
         "$ANTEATER_ERR_READONLY_FS")
             reason="filesystem is read-only"
-            suggestion="Check if disk needs repair"
+            suggestion="Check if the mount allows writes"
             ;;
         *)
             reason="permission denied"
-            if [[ -f "$touchid_file" ]] && grep -q "pam_tid.so" "$touchid_file" 2> /dev/null; then
-                suggestion="Try running again or check file ownership"
-            else
-                suggestion="Try 'anteater touchid' or check with 'ls -l'"
-            fi
+            suggestion="Check file ownership with 'ls -l'"
             ;;
     esac
 

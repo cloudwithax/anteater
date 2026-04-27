@@ -414,39 +414,13 @@ parse_args() {
 
 # Environment checks and directory setup
 check_requirements() {
-    if [[ "$OSTYPE" != "darwin"* ]]; then
-        log_error "This tool is designed for macOS only"
-        exit 1
-    fi
-
-    if command -v brew > /dev/null 2>&1 && brew list anteater > /dev/null 2>&1; then
-        local anteater_path
-        anteater_path=$(command -v anteater 2> /dev/null || true)
-        local is_homebrew_binary=false
-
-        if [[ -n "$anteater_path" && -L "$anteater_path" ]]; then
-            if readlink "$anteater_path" | grep -q "Cellar/anteater"; then
-                is_homebrew_binary=true
-            fi
-        fi
-
-        if [[ "$is_homebrew_binary" == "true" ]]; then
-            if [[ "$ACTION" == "update" ]]; then
-                return 0
-            fi
-
-            echo -e "${YELLOW}Anteater is installed via Homebrew${NC}"
-            echo ""
-            echo "Choose one:"
-            echo -e "  1. Update via Homebrew: ${GREEN}brew upgrade anteater${NC}"
-            echo -e "  2. Switch to manual: ${GREEN}brew uninstall --force anteater${NC} then re-run this"
-            echo ""
+    case "$OSTYPE" in
+        linux* | openbsd*) ;;
+        *)
+            log_error "This tool supports Linux and OpenBSD only ($OSTYPE detected)"
             exit 1
-        else
-            log_warning "Cleaning up stale Homebrew installation..."
-            brew uninstall --force anteater > /dev/null 2>&1 || true
-        fi
-    fi
+            ;;
+    esac
 
     if [[ ! -d "$(dirname "$INSTALL_DIR")" ]]; then
         log_error "Parent directory $(dirname "$INSTALL_DIR") does not exist"
@@ -466,134 +440,7 @@ create_directories() {
 
 }
 
-# Binary install helpers
-build_binary_from_source() {
-    local binary_name="$1"
-    local target_path="$2"
-    local cmd_dir=""
-
-    case "$binary_name" in
-        analyze)
-            cmd_dir="cmd/analyze"
-            ;;
-        status)
-            cmd_dir="cmd/status"
-            ;;
-        *)
-            return 1
-            ;;
-    esac
-
-    if ! command -v go > /dev/null 2>&1; then
-        return 1
-    fi
-
-    if [[ ! -d "$SOURCE_DIR/$cmd_dir" ]]; then
-        return 1
-    fi
-
-    if [[ -t 1 ]]; then
-        start_line_spinner "Building ${binary_name} from source..."
-    else
-        echo "Building ${binary_name} from source..."
-    fi
-
-    if (cd "$SOURCE_DIR" && go build -ldflags="-s -w" -o "$target_path" "./$cmd_dir" > /dev/null 2>&1); then
-        if [[ -t 1 ]]; then stop_line_spinner; fi
-        chmod +x "$target_path"
-        log_success "Built ${binary_name} from source"
-        return 0
-    fi
-
-    if [[ -t 1 ]]; then stop_line_spinner; fi
-    log_warning "Failed to build ${binary_name} from source"
-    return 1
-}
-
-download_binary() {
-    local binary_name="$1"
-    local target_path="$CONFIG_DIR/bin/${binary_name}-go"
-    local arch
-    arch=$(uname -m)
-    local arch_suffix="amd64"
-    if [[ "$arch" == "arm64" ]]; then
-        arch_suffix="arm64"
-    fi
-
-    if [[ -f "$SOURCE_DIR/bin/${binary_name}-go" ]]; then
-        cp "$SOURCE_DIR/bin/${binary_name}-go" "$target_path"
-        chmod +x "$target_path"
-        log_success "Installed local ${binary_name} binary"
-        return 0
-    elif [[ -f "$SOURCE_DIR/bin/${binary_name}-darwin-${arch_suffix}" ]]; then
-        cp "$SOURCE_DIR/bin/${binary_name}-darwin-${arch_suffix}" "$target_path"
-        chmod +x "$target_path"
-        log_success "Installed local ${binary_name} binary"
-        return 0
-    fi
-
-    if [[ "${ANTEATER_EDGE_INSTALL:-}" == "true" ]]; then
-        if build_binary_from_source "$binary_name" "$target_path"; then
-            return 0
-        fi
-    fi
-
-    local version
-    version=$(get_source_version)
-    if [[ -z "$version" ]]; then
-        log_warning "Could not determine version for ${binary_name}, trying local build"
-        if build_binary_from_source "$binary_name" "$target_path"; then
-            return 0
-        fi
-        return 1
-    fi
-    local url="https://github.com/cloudwithax/anteater/releases/download/V${version}/${binary_name}-darwin-${arch_suffix}"
-
-    # Skip preflight network checks to avoid false negatives.
-
-    if [[ -t 1 ]]; then
-        start_line_spinner "Downloading ${binary_name}..."
-    else
-        echo "Downloading ${binary_name}..."
-    fi
-
-    if curl -fsSL --connect-timeout 10 --max-time 60 -o "$target_path" "$url"; then
-        if [[ -t 1 ]]; then stop_line_spinner; fi
-        chmod +x "$target_path"
-        xattr -c "$target_path" 2> /dev/null || true
-        log_success "Downloaded ${binary_name} binary"
-        return 0
-    fi
-    if [[ -t 1 ]]; then stop_line_spinner; fi
-
-    local fallback_tag
-    fallback_tag=$(get_latest_release_tag 2> /dev/null || true)
-    if [[ -n "$fallback_tag" && "$fallback_tag" != "V${version}" ]]; then
-        local fallback_url="https://github.com/cloudwithax/anteater/releases/download/${fallback_tag}/${binary_name}-darwin-${arch_suffix}"
-        if [[ -t 1 ]]; then
-            start_line_spinner "Retrying ${binary_name} from ${fallback_tag}..."
-        else
-            echo "Retrying ${binary_name} from ${fallback_tag}..."
-        fi
-        if curl -fsSL --connect-timeout 10 --max-time 60 -o "$target_path" "$fallback_url"; then
-            if [[ -t 1 ]]; then stop_line_spinner; fi
-            chmod +x "$target_path"
-            xattr -c "$target_path" 2> /dev/null || true
-            log_success "Downloaded ${binary_name} from ${fallback_tag} (v${version} not yet published)"
-            return 0
-        fi
-        if [[ -t 1 ]]; then stop_line_spinner; fi
-    fi
-
-    log_warning "Could not download ${binary_name} binary, v${version}, trying local build"
-    if build_binary_from_source "$binary_name" "$target_path"; then
-        return 0
-    fi
-    log_error "Failed to install ${binary_name} binary"
-    return 1
-}
-
-# File installation (bin/lib/scripts + go helpers).
+# File installation (bin/lib/scripts).
 install_files() {
 
     resolve_source_dir
@@ -679,16 +526,7 @@ install_files() {
     fi
 
     if [[ "$source_dir_abs" != "$install_dir_abs" ]]; then
-        # Use absolute /usr/bin/sed (always BSD on macOS) so PATH-shadowed
-        # GNU sed from Homebrew gnu-sed does not break the -i '' syntax.
-        maybe_sudo /usr/bin/sed -i '' "s|SCRIPT_DIR=.*|SCRIPT_DIR=\"$CONFIG_DIR\"|" "$INSTALL_DIR/anteater"
-    fi
-
-    if ! download_binary "analyze"; then
-        exit 1
-    fi
-    if ! download_binary "status"; then
-        exit 1
+        maybe_sudo sed -i "s|SCRIPT_DIR=.*|SCRIPT_DIR=\"$CONFIG_DIR\"|" "$INSTALL_DIR/anteater"
     fi
 }
 
@@ -745,28 +583,16 @@ print_usage_summary() {
     log_confirm "$message"
 
     echo ""
-    echo "Usage:"
-    if [[ ":$PATH:" == *":$INSTALL_DIR:"* ]]; then
-        echo "  aa                           # Interactive menu"
-        echo "  aa clean                     # Deep cleanup"
-        echo "  aa uninstall                 # Remove apps + leftovers"
-        echo "  aa optimize                  # Check and maintain system"
-        echo "  aa analyze                   # Explore disk usage"
-        echo "  aa status                    # Monitor system health"
-        echo "  aa touchid                   # Configure Touch ID for sudo"
-        echo "  aa update                    # Update to latest version"
-        echo "  aa --help                    # Show all commands"
-    else
-        echo "  $INSTALL_DIR/aa                           # Interactive menu"
-        echo "  $INSTALL_DIR/aa clean                     # Deep cleanup"
-        echo "  $INSTALL_DIR/aa uninstall                 # Remove apps + leftovers"
-        echo "  $INSTALL_DIR/aa optimize                  # Check and maintain system"
-        echo "  $INSTALL_DIR/aa analyze                   # Explore disk usage"
-        echo "  $INSTALL_DIR/aa status                    # Monitor system health"
-        echo "  $INSTALL_DIR/aa touchid                   # Configure Touch ID for sudo"
-        echo "  $INSTALL_DIR/aa update                    # Update to latest version"
-        echo "  $INSTALL_DIR/aa --help                    # Show all commands"
+    local prefix=""
+    if [[ ":$PATH:" != *":$INSTALL_DIR:"* ]]; then
+        prefix="$INSTALL_DIR/"
     fi
+    echo "Usage:"
+    echo "  ${prefix}aa                       # Interactive menu"
+    echo "  ${prefix}aa purge                 # Remove old project artifacts"
+    echo "  ${prefix}aa completion            # Setup shell tab completion"
+    echo "  ${prefix}aa update                # Update to latest version"
+    echo "  ${prefix}aa --help                # Show all commands"
     echo ""
 }
 
@@ -812,24 +638,6 @@ perform_install() {
 
 perform_update() {
     check_requirements
-
-    if command -v brew > /dev/null 2>&1 && brew list anteater > /dev/null 2>&1; then
-        resolve_source_dir 2> /dev/null || true
-        local current_version
-        current_version=$(get_installed_version || echo "unknown")
-        if [[ -f "$SOURCE_DIR/lib/core/common.sh" ]]; then
-            # shellcheck disable=SC1090,SC1091
-            source "$SOURCE_DIR/lib/core/common.sh"
-            update_via_homebrew "$current_version"
-        else
-            log_error "Cannot update Homebrew-managed Anteater without full installation"
-            echo ""
-            echo "Please update via Homebrew:"
-            echo -e "  ${GREEN}brew upgrade anteater${NC}"
-            exit 1
-        fi
-        exit 0
-    fi
 
     local installed_version
     installed_version="$(get_installed_version || true)"

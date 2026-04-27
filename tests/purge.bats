@@ -978,7 +978,11 @@ EOF
 # stdin is a tty.
 _run_in_pty() {
 	local script_file="$1"
-	script -q /dev/null bash --noprofile --norc "$script_file" 2>/dev/null
+	if script --version 2>&1 | grep -qi util-linux; then
+		script -q -c "bash --noprofile --norc '$script_file'" /dev/null 2>/dev/null
+	else
+		script -q /dev/null bash --noprofile --norc "$script_file" 2>/dev/null
+	fi
 }
 
 @test "sort: PURGE_CATEGORY_FULL_PATHS_ARRAY[0] is the largest artifact after size-descending sort" {

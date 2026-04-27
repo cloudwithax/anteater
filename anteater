@@ -12,13 +12,8 @@ source "$SCRIPT_DIR/lib/core/commands.sh"
 
 trap cleanup_temp_files EXIT INT TERM
 
-# Version and update helpers
 VERSION="1.0.0"
 ANTEATER_TAGLINE="Deep clean your *nix system, based on Mole from tw93"
-
-is_touchid_configured() {
-    grep -q "pam_tid.so" /etc/pam.d/sudo /etc/pam.d/sudo_local 2> /dev/null
-}
 
 get_latest_version() {
     curl -fsSL --connect-timeout 2 --max-time 3 -H "Cache-Control: no-cache" \
@@ -36,79 +31,7 @@ get_latest_version_from_github() {
     echo "$version"
 }
 
-get_homebrew_latest_version() {
-    command -v brew > /dev/null 2>&1 || return 1
-
-    local line candidate=""
-
-    # Prefer local tap outdated info to avoid notifying before formula is available.
-    line=$(HOMEBREW_NO_AUTO_UPDATE=1 brew outdated --formula --verbose anteater 2> /dev/null | head -1 || true)
-    if [[ "$line" == *"< "* ]]; then
-        candidate="${line##*< }"
-        candidate="${candidate%% *}"
-    fi
-
-    # Fallback for environments where outdated output is unavailable.
-    if [[ -z "$candidate" ]]; then
-        line=$(HOMEBREW_NO_AUTO_UPDATE=1 brew info anteater 2> /dev/null | awk 'NR==1 { print; exit }' || true)
-        line="${line#==> }"
-        line="${line#*: }"
-        if [[ "$line" == stable* ]]; then
-            candidate=$(printf '%s\n' "$line" | awk '{print $2}')
-        fi
-    fi
-
-    [[ -n "$candidate" ]] && printf '%s\n' "$candidate"
-}
-# Install detection (Homebrew vs manual).
-# Uses variable capture + string matching to avoid SIGPIPE under pipefail.
-is_homebrew_install() {
-    local anteater_path link_target has_brew=false
-    anteater_path=$(command -v anteater 2> /dev/null) || return 1
-
-    if command -v brew > /dev/null 2>&1; then
-        has_brew=true
-    fi
-
-    if [[ -L "$anteater_path" ]]; then
-        link_target=$(readlink "$anteater_path" 2> /dev/null) || true
-        if [[ "$link_target" == *"Cellar/anteater"* ]]; then
-            if $has_brew; then
-                brew list anteater > /dev/null 2>&1 && return 0
-            fi
-            return 1
-        fi
-    fi
-
-    if [[ -f "$anteater_path" ]]; then
-        # Paths are quoted so Homebrew bottle relocation cannot break parsing
-        # when the prefix contains spaces (e.g. Applite under "Application Support").
-        case "$anteater_path" in
-            "/opt/homebrew/bin/anteater" | "/usr/local/bin/anteater")
-                if [[ -d "/opt/homebrew/Cellar/anteater" ]] || [[ -d "/usr/local/Cellar/anteater" ]]; then
-                    if $has_brew; then
-                        brew list anteater > /dev/null 2>&1 && return 0
-                    else
-                        return 0 # Cellar exists, probably Homebrew install
-                    fi
-                fi
-                ;;
-        esac
-    fi
-
-    if $has_brew; then
-        local brew_prefix
-        brew_prefix=$(brew --prefix 2> /dev/null)
-        if [[ -n "$brew_prefix" && "$anteater_path" == "$brew_prefix/bin/anteater" && -d "$brew_prefix/Cellar/anteater" ]]; then
-            brew list anteater > /dev/null 2>&1 && return 0
-        fi
-    fi
-
-    return 1
-}
-
 get_install_channel() {
-    # Try user config dir first (matches install.sh behavior), fallback to SCRIPT_DIR
     local channel_file="${ANTEATER_CONFIG_DIR:-$HOME/.config/anteater}/install_channel"
     if [[ ! -f "$channel_file" ]]; then
         channel_file="$SCRIPT_DIR/install_channel"
@@ -124,7 +47,6 @@ get_install_channel() {
 }
 
 get_install_commit() {
-    # Try user config dir first (matches install.sh behavior), fallback to SCRIPT_DIR
     local channel_file="${ANTEATER_CONFIG_DIR:-$HOME/.config/anteater}/install_channel"
     if [[ ! -f "$channel_file" ]]; then
         channel_file="$SCRIPT_DIR/install_channel"
@@ -154,13 +76,12 @@ check_for_updates() {
             channel=$(get_install_channel)
 
             if [[ "$channel" == "nightly" ]]; then
-                # Nightly: compare commit hashes instead of version numbers
                 local installed_commit latest_commit
                 installed_commit=$(get_install_commit)
                 latest_commit=$(get_latest_commit_from_github)
 
                 if [[ -n "$installed_commit" && -n "$latest_commit" && "${installed_commit:0:7}" != "${latest_commit:0:7}" ]]; then
-                    printf "\nNew nightly commit %s available, run %smo update --nightly%s\n\n" "${latest_commit:0:7}" "$GREEN" "$NC" > "$msg_cache"
+                    printf "\nNew nightly commit %s available, run %saa update --nightly%s\n\n" "${latest_commit:0:7}" "$GREEN" "$NC" > "$msg_cache"
                 else
                     echo -n > "$msg_cache"
                 fi
@@ -173,18 +94,7 @@ check_for_updates() {
                 fi
 
                 if [[ -n "$latest" && "$VERSION" != "$latest" && "$(printf '%s\n' "$VERSION" "$latest" | sort -V | head -1)" == "$VERSION" ]]; then
-                    if is_homebrew_install; then
-                        # For Homebrew, only notify if the brew tap has the new version available locally
-                        local brew_latest
-                        brew_latest=$(get_homebrew_latest_version || true)
-                        if [[ -n "$brew_latest" && "$brew_latest" != "$VERSION" && "$(printf '%s\n' "$VERSION" "$brew_latest" | sort -V | head -1)" == "$VERSION" ]]; then
-                            printf "\nUpdate %s available, run %smo update%s\n\n" "$brew_latest" "$GREEN" "$NC" > "$msg_cache"
-                        else
-                            echo -n > "$msg_cache"
-                        fi
-                    else
-                        printf "\nUpdate %s available, run %smo update%s\n\n" "$latest" "$GREEN" "$NC" > "$msg_cache"
-                    fi
+                    printf "\nUpdate %s available, run %saa update%s\n\n" "$latest" "$GREEN" "$NC" > "$msg_cache"
                 else
                     echo -n > "$msg_cache"
                 fi
@@ -201,24 +111,23 @@ show_update_notification() {
     fi
 }
 
-# UI helpers
 show_brand_banner() {
     cat << EOF
-${GREEN} __  __       _      ${NC}
-${GREEN}|  \/  | ___ | | ___ ${NC}
-${GREEN}| |\/| |/ _ \| |/ _ \\${NC}
-${GREEN}| |  | | (_) | |  __/${NC}  ${BLUE}https://github.com/cloudwithax/anteater${NC}
-${GREEN}|_|  |_|\___/|_|\___|${NC}  ${GREEN}${ANTEATER_TAGLINE}${NC}
+${GREEN}    _          _                 _            ${NC}
+${GREEN}   / \   _ __ | |_ ___  __ _  __| |_ ___ _ __ ${NC}
+${GREEN}  / _ \ | '_ \| __/ _ \/ _\` |/ _\` | __/ _ \ '__|${NC}  ${BLUE}https://github.com/cloudwithax/anteater${NC}
+${GREEN} / ___ \| | | | ||  __/ (_| | (_| | ||  __/ |   ${NC}  ${GREEN}${ANTEATER_TAGLINE}${NC}
+${GREEN}/_/   \_\_| |_|\__\___|\__,_|\__,_|\__\___|_|   ${NC}
 
 EOF
 }
 
 show_version() {
-    local os_ver
-    if command -v sw_vers > /dev/null; then
-        os_ver=$(sw_vers -productVersion)
-    else
-        os_ver="Unknown"
+    local os_name="Unknown"
+    if [[ -r /etc/os-release ]]; then
+        os_name=$(. /etc/os-release && printf '%s' "${PRETTY_NAME:-${NAME:-Linux}}")
+    elif command -v uname > /dev/null 2>&1; then
+        os_name=$(uname -s)
     fi
 
     local arch
@@ -227,21 +136,8 @@ show_version() {
     local kernel
     kernel=$(uname -r)
 
-    local sip_status
-    if command -v csrutil > /dev/null; then
-        sip_status=$(csrutil status 2> /dev/null | grep -o "enabled\|disabled" || echo "Unknown")
-        sip_status="$(LC_ALL=C tr '[:lower:]' '[:upper:]' <<< "${sip_status:0:1}")${sip_status:1}"
-    else
-        sip_status="Unknown"
-    fi
-
     local disk_free
     disk_free=$(df -h / 2> /dev/null | awk 'NR==2 {print $4}' || echo "Unknown")
-
-    local install_method="Manual"
-    if is_homebrew_install; then
-        install_method="Homebrew"
-    fi
 
     local channel
     channel=$(get_install_channel)
@@ -256,12 +152,10 @@ show_version() {
             printf 'Channel: Nightly\n'
         fi
     fi
-    printf 'macOS: %s\n' "$os_ver"
+    printf 'OS: %s\n' "$os_name"
     printf 'Architecture: %s\n' "$arch"
     printf 'Kernel: %s\n' "$kernel"
-    printf 'SIP: %s\n' "$sip_status"
     printf 'Disk Free: %s\n' "$disk_free"
-    printf 'Install: %s\n' "$install_method"
     printf 'Shell: %s\n\n' "${SHELL:-Unknown}"
 }
 
@@ -279,18 +173,9 @@ show_help() {
         printf "  %s%-28s%s %s\n" "$GREEN" "$display" "$NC" "$desc"
     done
     echo
-    printf "  %s%-28s%s %s\n" "$GREEN" "aa clean --dry-run" "$NC" "Preview cleanup"
-    printf "  %s%-28s%s %s\n" "$GREEN" "aa clean --whitelist" "$NC" "Manage protected caches"
-
-    printf "  %s%-28s%s %s\n" "$GREEN" "aa optimize --dry-run" "$NC" "Preview optimization"
-    printf "  %s%-28s%s %s\n" "$GREEN" "aa optimize --whitelist" "$NC" "Manage protected items"
-    printf "  %s%-28s%s %s\n" "$GREEN" "aa uninstall --dry-run" "$NC" "Preview app uninstall"
     printf "  %s%-28s%s %s\n" "$GREEN" "aa purge --dry-run" "$NC" "Preview project purge"
-    printf "  %s%-28s%s %s\n" "$GREEN" "aa installer --dry-run" "$NC" "Preview installer cleanup"
-    printf "  %s%-28s%s %s\n" "$GREEN" "aa touchid enable --dry-run" "$NC" "Preview Touch ID setup"
-    printf "  %s%-28s%s %s\n" "$GREEN" "aa completion --dry-run" "$NC" "Preview shell completion edits"
     printf "  %s%-28s%s %s\n" "$GREEN" "aa purge --paths" "$NC" "Configure scan directories"
-    printf "  %s%-28s%s %s\n" "$GREEN" "aa analyze /Volumes" "$NC" "Analyze external drives only"
+    printf "  %s%-28s%s %s\n" "$GREEN" "aa completion --dry-run" "$NC" "Preview shell completion edits"
     printf "  %s%-28s%s %s\n" "$GREEN" "aa update --force" "$NC" "Force reinstall latest stable version"
     printf "  %s%-28s%s %s\n" "$GREEN" "aa update --nightly" "$NC" "Install latest unreleased main branch build"
     printf "  %s%-28s%s %s\n" "$GREEN" "aa remove --dry-run" "$NC" "Preview Anteater removal"
@@ -300,29 +185,16 @@ show_help() {
     echo
 }
 
-# Update flow (Homebrew or installer).
+# Update flow.
 update_anteater() {
     local force_update="${1:-false}"
     local nightly_update="${2:-false}"
-    local update_interrupted=false
     local sudo_keepalive_pid=""
 
-    # Cleanup function for sudo keepalive
     _update_cleanup() {
         [[ -n "$sudo_keepalive_pid" ]] && _stop_sudo_keepalive "$sudo_keepalive_pid" || true
     }
-    trap '_update_cleanup; update_interrupted=true; echo ""; exit 130' INT TERM
-
-    if is_homebrew_install; then
-        if [[ "$nightly_update" == "true" ]]; then
-            log_error "Nightly update is only available for script installations"
-            echo -e "${ICON_REVIEW} Homebrew installs follow stable releases."
-            echo -e "${ICON_REVIEW} Reinstall via script to use: ${GRAY}aa update --nightly${NC}"
-            exit 1
-        fi
-        update_via_homebrew "$VERSION"
-        exit 0
-    fi
+    trap '_update_cleanup; echo ""; exit 130' INT TERM
 
     local latest=""
     local download_label="Downloading latest version..."
@@ -366,26 +238,18 @@ update_anteater() {
         exit 1
     }
 
-    local download_error=""
     if command -v curl > /dev/null 2>&1; then
-        download_error=$(curl -fsSL --connect-timeout 10 --max-time 60 "$installer_url" -o "$tmp_installer" 2>&1) || {
+        curl -fsSL --connect-timeout 10 --max-time 60 "$installer_url" -o "$tmp_installer" || {
             local curl_exit=$?
             if [[ -t 1 ]]; then stop_inline_spinner; fi
             rm -f "$tmp_installer"
             log_error "Update failed, curl error: $curl_exit"
-
-            case $curl_exit in
-                6) echo -e "${ICON_REVIEW} Could not resolve host. Check DNS or network connection." ;;
-                7) echo -e "${ICON_REVIEW} Failed to connect. Check network or proxy settings." ;;
-                22) echo -e "${ICON_REVIEW} HTTP 404 Not Found. The installer may have moved." ;;
-                28) echo -e "${ICON_REVIEW} Connection timed out. Try again or check firewall." ;;
-                *) echo -e "${ICON_REVIEW} Check network connection and try again." ;;
-            esac
+            echo -e "${ICON_REVIEW} Check network connection and try again."
             echo -e "${ICON_REVIEW} URL: $installer_url"
             exit 1
         }
     elif command -v wget > /dev/null 2>&1; then
-        download_error=$(wget --timeout=10 --tries=3 -qO "$tmp_installer" "$installer_url" 2>&1) || {
+        wget --timeout=10 --tries=3 -qO "$tmp_installer" "$installer_url" || {
             if [[ -t 1 ]]; then stop_inline_spinner; fi
             rm -f "$tmp_installer"
             log_error "Update failed, wget error"
@@ -397,7 +261,6 @@ update_anteater() {
         if [[ -t 1 ]]; then stop_inline_spinner; fi
         rm -f "$tmp_installer"
         log_error "curl or wget required"
-        echo -e "${ICON_REVIEW} Install curl with: ${GRAY}brew install curl${NC}"
         exit 1
     fi
 
@@ -422,7 +285,6 @@ update_anteater() {
             rm -f "$tmp_installer"
             exit 1
         fi
-        # Start sudo keepalive to prevent cache expiration during install
         sudo_keepalive_pid=$(_start_sudo_keepalive)
     fi
 
@@ -446,16 +308,8 @@ update_anteater() {
 
         if ! printf '%s\n' "$output" | grep -Eq "Updated to latest version|Already on latest version"; then
             local new_version
-            new_version=$(printf '%s\n' "$output" | sed -n 's/.*-> \([^[:space:]]\{1,\}\).*/\1/p' | head -1)
-            if [[ -z "$new_version" ]]; then
-                new_version=$(printf '%s\n' "$output" | sed -n 's/.*version[[:space:]]\{1,\}\([^[:space:]]\{1,\}\).*/\1/p' | head -1)
-            fi
-            if [[ -z "$new_version" ]]; then
-                new_version=$("$anteater_path" --version 2> /dev/null | awk 'NR==1 && NF {print $NF}' || echo "")
-            fi
-            if [[ -z "$new_version" ]]; then
-                new_version="$fallback_version"
-            fi
+            new_version=$("$anteater_path" --version 2> /dev/null | awk '/Anteater version/ {print $3; exit}' || echo "")
+            [[ -z "$new_version" ]] && new_version="$fallback_version"
             printf '\n%s\n\n' "${GREEN}${ICON_SUCCESS}${NC} Updated to ${success_label}, ${new_version:-unknown}"
         else
             printf '\n'
@@ -469,54 +323,32 @@ update_anteater() {
         config_dir="$HOME/.config/anteater"
     fi
 
+    local installer_version
     if [[ "$nightly_update" == "true" ]]; then
-        if install_output=$(ANTEATER_VERSION="main" "$tmp_installer" --prefix "$install_dir" --config "$config_dir" 2>&1); then
-            process_install_output "$install_output" "$latest" "$final_success_label"
-        else
-            if [[ -t 1 ]]; then stop_inline_spinner; fi
-            rm -f "$tmp_installer"
-            _update_cleanup
-            log_error "Nightly update failed"
-            echo "$install_output" | tail -10 >&2 # Show last 10 lines of error
-            exit 1
-        fi
-    elif [[ "$force_update" == "true" ]]; then
-        if install_output=$(ANTEATER_VERSION="$update_tag" "$tmp_installer" --prefix "$install_dir" --config "$config_dir" 2>&1); then
-            process_install_output "$install_output" "$latest" "$final_success_label"
-        else
-            if [[ -t 1 ]]; then stop_inline_spinner; fi
-            rm -f "$tmp_installer"
-            _update_cleanup
-            log_error "Update failed"
-            echo "$install_output" | tail -10 >&2 # Show last 10 lines of error
-            exit 1
-        fi
+        installer_version="main"
     else
-        if install_output=$(ANTEATER_VERSION="$update_tag" "$tmp_installer" --prefix "$install_dir" --config "$config_dir" --update 2>&1); then
-            process_install_output "$install_output" "$latest" "$final_success_label"
-        else
-            if install_output=$(ANTEATER_VERSION="$update_tag" "$tmp_installer" --prefix "$install_dir" --config "$config_dir" 2>&1); then
-                process_install_output "$install_output" "$latest" "$final_success_label"
-            else
-                if [[ -t 1 ]]; then stop_inline_spinner; fi
-                rm -f "$tmp_installer"
-                _update_cleanup
-                log_error "Update failed"
-                echo "$install_output" | tail -10 >&2 # Show last 10 lines of error
-                exit 1
-            fi
-        fi
+        installer_version="$update_tag"
+    fi
+
+    if install_output=$(ANTEATER_VERSION="$installer_version" "$tmp_installer" --prefix "$install_dir" --config "$config_dir" 2>&1); then
+        process_install_output "$install_output" "$latest" "$final_success_label"
+    else
+        if [[ -t 1 ]]; then stop_inline_spinner; fi
+        rm -f "$tmp_installer"
+        _update_cleanup
+        log_error "Update failed"
+        echo "$install_output" | tail -10 >&2
+        exit 1
     fi
 
     rm -f "$tmp_installer"
     rm -f "$HOME/.cache/anteater/update_message"
 
-    # Cleanup and reset trap
     _update_cleanup
     trap - INT TERM
 }
 
-# Remove flow (Homebrew + manual + config/cache).
+# Remove flow.
 remove_anteater() {
     local dry_run_mode="${1:-false}"
     local test_mode=false
@@ -530,40 +362,14 @@ remove_anteater() {
         echo "Detecting installations..."
     fi
 
-    local is_homebrew=false
-    local brew_cmd=""
-    local brew_has_anteater="false"
     local -a manual_installs=()
     local -a alias_installs=()
 
-    if [[ "$test_mode" != "true" ]]; then
-        if command -v brew > /dev/null 2>&1; then
-            brew_cmd="brew"
-        elif [[ -x "/opt/homebrew/bin/brew" ]]; then
-            brew_cmd="/opt/homebrew/bin/brew"
-        elif [[ -x "/usr/local/bin/brew" ]]; then
-            brew_cmd="/usr/local/bin/brew"
-        fi
-
-        if [[ -n "$brew_cmd" ]]; then
-            if "$brew_cmd" list anteater > /dev/null 2>&1; then
-                brew_has_anteater="true"
-            fi
-        fi
-
-        if [[ "$brew_has_anteater" == "true" ]] || is_homebrew_install; then
-            is_homebrew=true
-        fi
-    fi
-
-    local found_anteater
-    found_anteater=""
+    local found_anteater=""
     if [[ "$test_mode" != "true" ]]; then
         found_anteater=$(command -v anteater 2> /dev/null || true)
         if [[ -n "$found_anteater" && -f "$found_anteater" ]]; then
-            if [[ ! -L "$found_anteater" ]] || ! readlink "$found_anteater" | grep -q "Cellar/anteater"; then
-                manual_installs+=("$found_anteater")
-            fi
+            manual_installs+=("$found_anteater")
         fi
     fi
 
@@ -574,26 +380,20 @@ remove_anteater() {
         fallback_paths=(
             "/usr/local/bin/anteater"
             "$HOME/.local/bin/anteater"
-            "/opt/local/bin/anteater"
         )
     fi
 
     for path in "${fallback_paths[@]}"; do
         if [[ -f "$path" && "$path" != "$found_anteater" ]]; then
-            if [[ ! -L "$path" ]] || ! readlink "$path" | grep -q "Cellar/anteater"; then
-                manual_installs+=("$path")
-            fi
+            manual_installs+=("$path")
         fi
     done
 
-    local found_mo
-    found_mo=""
+    local found_aa=""
     if [[ "$test_mode" != "true" ]]; then
-        found_mo=$(command -v aa 2> /dev/null || true)
-        if [[ -n "$found_mo" && -f "$found_mo" ]]; then
-            if [[ ! -L "$found_mo" ]] || ! readlink "$found_mo" | grep -q "Cellar/anteater"; then
-                alias_installs+=("$found_mo")
-            fi
+        found_aa=$(command -v aa 2> /dev/null || true)
+        if [[ -n "$found_aa" && -f "$found_aa" ]]; then
+            alias_installs+=("$found_aa")
         fi
     fi
 
@@ -604,15 +404,12 @@ remove_anteater() {
         alias_fallback=(
             "/usr/local/bin/aa"
             "$HOME/.local/bin/aa"
-            "/opt/local/bin/aa"
         )
     fi
 
     for alias in "${alias_fallback[@]}"; do
-        if [[ -f "$alias" && "$alias" != "$found_mo" ]]; then
-            if [[ ! -L "$alias" ]] || ! readlink "$alias" | grep -q "Cellar/anteater"; then
-                alias_installs+=("$alias")
-            fi
+        if [[ -f "$alias" && "$alias" != "$found_aa" ]]; then
+            alias_installs+=("$alias")
         fi
     done
 
@@ -624,19 +421,19 @@ remove_anteater() {
 
     local manual_count=${#manual_installs[@]}
     local alias_count=${#alias_installs[@]}
-    if [[ "$is_homebrew" == "false" && ${manual_count:-0} -eq 0 && ${alias_count:-0} -eq 0 ]]; then
+    if [[ ${manual_count:-0} -eq 0 && ${alias_count:-0} -eq 0 ]]; then
         printf '%s\n\n' "${YELLOW}No Anteater installation detected${NC}"
         exit 0
     fi
 
-    # Dry-run mode: show preview and exit without confirmation
+    local log_dir="${ANTEATER_LOG_DIR:-${XDG_STATE_HOME:-$HOME/.local/state}/anteater/logs}"
+    local config_dir="${ANTEATER_CONFIG_DIR:-${XDG_CONFIG_HOME:-$HOME/.config}/anteater}"
+    local cache_dir="${ANTEATER_CACHE_DIR:-${XDG_CACHE_HOME:-$HOME/.cache}/anteater}"
+
     if [[ "$dry_run_mode" == "true" ]]; then
         echo -e "${YELLOW}${ICON_DRY_RUN} DRY RUN MODE${NC}, no files will be removed"
         echo ""
         echo -e "${YELLOW}Remove Anteater${NC}, would delete the following:"
-        if [[ "$is_homebrew" == "true" ]]; then
-            echo -e "  ${GRAY}${ICON_LIST} Would run: brew uninstall --force anteater${NC}"
-        fi
         if [[ ${manual_count:-0} -gt 0 ]]; then
             for install in "${manual_installs[@]}"; do
                 [[ -f "$install" ]] && echo -e "  ${GRAY}${ICON_LIST} Would remove: ${install}${NC}"
@@ -647,34 +444,31 @@ remove_anteater() {
                 [[ -f "$alias" ]] && echo -e "  ${GRAY}${ICON_LIST} Would remove: ${alias}${NC}"
             done
         fi
-        [[ -d "$HOME/.cache/anteater" ]] && echo -e "  ${GRAY}${ICON_LIST} Would remove: $HOME/.cache/anteater${NC}"
-        [[ -d "$HOME/.config/anteater" ]] && echo -e "  ${GRAY}${ICON_LIST} Would remove: $HOME/.config/anteater${NC}"
-        [[ -d "$HOME/Library/Logs/anteater" ]] && echo -e "  ${GRAY}${ICON_LIST} Would remove: $HOME/Library/Logs/anteater${NC}"
+        [[ -d "$cache_dir" ]] && echo -e "  ${GRAY}${ICON_LIST} Would remove: $cache_dir${NC}"
+        [[ -d "$config_dir" ]] && echo -e "  ${GRAY}${ICON_LIST} Would remove: $config_dir${NC}"
+        [[ -d "$log_dir" ]] && echo -e "  ${GRAY}${ICON_LIST} Would remove: $log_dir${NC}"
 
         printf '\n%s\n\n' "${GREEN}${ICON_SUCCESS}${NC} Dry run complete, no changes made"
         exit 0
     fi
 
     echo -e "${YELLOW}Remove Anteater${NC}, will delete the following:"
-    if [[ "$is_homebrew" == "true" ]]; then
-        echo "  ${ICON_LIST} Anteater via Homebrew"
-    fi
     for install in ${manual_installs[@]+"${manual_installs[@]}"} ${alias_installs[@]+"${alias_installs[@]}"}; do
         echo "  ${ICON_LIST} $install"
     done
-    echo "  ${ICON_LIST} ~/.config/anteater"
-    echo "  ${ICON_LIST} ~/.cache/anteater"
-    echo "  ${ICON_LIST} ~/Library/Logs/anteater"
+    echo "  ${ICON_LIST} $config_dir"
+    echo "  ${ICON_LIST} $cache_dir"
+    echo "  ${ICON_LIST} $log_dir"
     echo -ne "${PURPLE}${ICON_ARROW}${NC} Press ${GREEN}Enter${NC} to confirm, ${GRAY}ESC${NC} to cancel: "
 
     IFS= read -r -s -n1 key || key=""
-    drain_pending_input # Clean up any escape sequence remnants
+    drain_pending_input
     case "$key" in
         $'\e')
             exit 0
             ;;
         "" | $'\n' | $'\r')
-            printf "\r\033[K" # Clear the prompt line
+            printf "\r\033[K"
             ;;
         *)
             exit 0
@@ -682,36 +476,13 @@ remove_anteater() {
     esac
 
     local has_error=false
-    if [[ "$is_homebrew" == "true" ]]; then
-        if [[ -z "$brew_cmd" ]]; then
-            log_error "Homebrew command not found. Please ensure Homebrew is installed and in your PATH."
-            log_warning "Manual step: brew uninstall --force anteater"
-            exit 1
-        fi
-
-        log_info "Attempting to uninstall Anteater via Homebrew..."
-        local brew_uninstall_output
-        if ! brew_uninstall_output=$("$brew_cmd" uninstall --force anteater 2>&1); then
-            has_error=true
-            log_error "Homebrew uninstallation failed:"
-            printf "%s\n" "$brew_uninstall_output" | sed "s/^/${RED}  | ${NC}/" >&2
-            log_warning "Manual step: ${YELLOW}brew uninstall --force anteater${NC}"
-            echo "" # Add a blank line for readability
-        else
-            log_success "Anteater uninstalled via Homebrew."
-        fi
-    fi
     if [[ ${manual_count:-0} -gt 0 ]]; then
         for install in "${manual_installs[@]}"; do
             if [[ -f "$install" ]]; then
                 if [[ ! -w "$(dirname "$install")" ]]; then
-                    if ! sudo rm -f "$install" 2> /dev/null; then
-                        has_error=true
-                    fi
+                    sudo rm -f "$install" 2> /dev/null || has_error=true
                 else
-                    if ! rm -f "$install" 2> /dev/null; then
-                        has_error=true
-                    fi
+                    rm -f "$install" 2> /dev/null || has_error=true
                 fi
             fi
         done
@@ -720,26 +491,16 @@ remove_anteater() {
         for alias in "${alias_installs[@]}"; do
             if [[ -f "$alias" ]]; then
                 if [[ ! -w "$(dirname "$alias")" ]]; then
-                    if ! sudo rm -f "$alias" 2> /dev/null; then
-                        has_error=true
-                    fi
+                    sudo rm -f "$alias" 2> /dev/null || has_error=true
                 else
-                    if ! rm -f "$alias" 2> /dev/null; then
-                        has_error=true
-                    fi
+                    rm -f "$alias" 2> /dev/null || has_error=true
                 fi
             fi
         done
     fi
-    if [[ -d "$HOME/.cache/anteater" ]]; then
-        rm -rf "$HOME/.cache/anteater" 2> /dev/null || true
-    fi
-    if [[ -d "$HOME/.config/anteater" ]]; then
-        rm -rf "$HOME/.config/anteater" 2> /dev/null || true
-    fi
-    if [[ -d "$HOME/Library/Logs/anteater" ]]; then
-        rm -rf "$HOME/Library/Logs/anteater" 2> /dev/null || true
-    fi
+    [[ -d "$cache_dir" ]] && rm -rf "$cache_dir" 2> /dev/null || true
+    [[ -d "$config_dir" ]] && rm -rf "$config_dir" 2> /dev/null || true
+    [[ -d "$log_dir" ]] && rm -rf "$log_dir" 2> /dev/null || true
 
     local final_message
     if [[ "$has_error" == "true" ]]; then
@@ -752,10 +513,9 @@ remove_anteater() {
     exit 0
 }
 
-# Menu UI
 show_main_menu() {
     local selected="${1:-1}"
-    local _full_draw="${2:-true}" # Kept for compatibility (unused)
+    local _full_draw="${2:-true}"
     local banner="${MAIN_MENU_BANNER:-}"
     local update_message="${MAIN_MENU_UPDATE_MESSAGE:-}"
 
@@ -781,18 +541,13 @@ show_main_menu() {
 
     printf '\r\033[2K\n'
 
-    printf '\r\033[2K%s\n' "$(show_menu_option 1 "Clean        Free up disk space" "$([[ $selected -eq 1 ]] && echo true || echo false)")"
-    printf '\r\033[2K%s\n' "$(show_menu_option 2 "Uninstall    Remove apps completely" "$([[ $selected -eq 2 ]] && echo true || echo false)")"
-    printf '\r\033[2K%s\n' "$(show_menu_option 3 "Optimize     Check and maintain system" "$([[ $selected -eq 3 ]] && echo true || echo false)")"
-    printf '\r\033[2K%s\n' "$(show_menu_option 4 "Analyze      Explore disk usage" "$([[ $selected -eq 4 ]] && echo true || echo false)")"
-    printf '\r\033[2K%s\n' "$(show_menu_option 5 "Status       Monitor system health" "$([[ $selected -eq 5 ]] && echo true || echo false)")"
+    printf '\r\033[2K%s\n' "$(show_menu_option 1 "Purge        Remove old project artifacts" "$([[ $selected -eq 1 ]] && echo true || echo false)")"
+    printf '\r\033[2K%s\n' "$(show_menu_option 2 "Completion   Setup shell tab completion" "$([[ $selected -eq 2 ]] && echo true || echo false)")"
 
     if [[ -t 0 ]]; then
         printf '\r\033[2K\n'
         local controls="${GRAY}↑↓  |  Enter  |  M More  |  V Version"
-        if ! is_touchid_configured; then
-            controls="${controls}  |  T TouchID"
-        elif [[ "${MAIN_MENU_SHOW_UPDATE:-false}" == "true" ]]; then
+        if [[ "${MAIN_MENU_SHOW_UPDATE:-false}" == "true" ]]; then
             controls="${controls}  |  U Update"
         fi
         controls="${controls}  |  Q Quit${NC}"
@@ -840,36 +595,21 @@ interactive_main_menu() {
 
         case "$key" in
             "UP") ((current_option > 1)) && ((current_option--)) ;;
-            "DOWN") ((current_option < 5)) && ((current_option++)) ;;
+            "DOWN") ((current_option < 2)) && ((current_option++)) ;;
             "ENTER")
                 show_cursor
                 case $current_option in
-                    1) exec "$SCRIPT_DIR/bin/clean.sh" ;;
-                    2) exec "$SCRIPT_DIR/bin/uninstall.sh" ;;
-                    3) exec "$SCRIPT_DIR/bin/optimize.sh" ;;
-                    4) exec "$SCRIPT_DIR/bin/analyze.sh" ;;
-                    5) exec "$SCRIPT_DIR/bin/status.sh" ;;
+                    1) exec "$SCRIPT_DIR/bin/purge.sh" ;;
+                    2) exec "$SCRIPT_DIR/bin/completion.sh" ;;
                 esac
                 ;;
             "CHAR:1")
                 show_cursor
-                exec "$SCRIPT_DIR/bin/clean.sh"
+                exec "$SCRIPT_DIR/bin/purge.sh"
                 ;;
             "CHAR:2")
                 show_cursor
-                exec "$SCRIPT_DIR/bin/uninstall.sh"
-                ;;
-            "CHAR:3")
-                show_cursor
-                exec "$SCRIPT_DIR/bin/optimize.sh"
-                ;;
-            "CHAR:4")
-                show_cursor
-                exec "$SCRIPT_DIR/bin/analyze.sh"
-                ;;
-            "CHAR:5")
-                show_cursor
-                exec "$SCRIPT_DIR/bin/status.sh"
+                exec "$SCRIPT_DIR/bin/completion.sh"
                 ;;
             "MORE")
                 show_cursor
@@ -882,10 +622,6 @@ interactive_main_menu() {
                 clear
                 show_version
                 exit 0
-                ;;
-            "TOUCHID")
-                show_cursor
-                exec "$SCRIPT_DIR/bin/touchid.sh"
                 ;;
             "UPDATE")
                 [[ "${MAIN_MENU_SHOW_UPDATE:-false}" == "true" ]] || continue
@@ -916,29 +652,8 @@ main() {
     done
 
     case "${args[0]:-""}" in
-        "optimize" | "optimise")
-            exec "$SCRIPT_DIR/bin/optimize.sh" "${args[@]:1}"
-            ;;
-        "clean")
-            exec "$SCRIPT_DIR/bin/clean.sh" "${args[@]:1}"
-            ;;
-        "uninstall")
-            exec "$SCRIPT_DIR/bin/uninstall.sh" "${args[@]:1}"
-            ;;
-        "analyze" | "analyse")
-            exec "$SCRIPT_DIR/bin/analyze.sh" "${args[@]:1}"
-            ;;
-        "status")
-            exec "$SCRIPT_DIR/bin/status.sh" "${args[@]:1}"
-            ;;
         "purge")
             exec "$SCRIPT_DIR/bin/purge.sh" "${args[@]:1}"
-            ;;
-        "installer")
-            exec "$SCRIPT_DIR/bin/installer.sh" "${args[@]:1}"
-            ;;
-        "touchid")
-            exec "$SCRIPT_DIR/bin/touchid.sh" "${args[@]:1}"
             ;;
         "completion")
             exec "$SCRIPT_DIR/bin/completion.sh" "${args[@]:1}"

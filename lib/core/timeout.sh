@@ -14,14 +14,11 @@ readonly ANTEATER_TIMEOUT_LOADED=1
 # Timeout Command Initialization
 # ============================================================================
 
-# Initialize timeout command (prefer gtimeout from coreutils, fallback to timeout)
+# Initialize timeout command (prefer GNU coreutils timeout, fallback to gtimeout)
 # Sets AA_TIMEOUT_BIN to the available timeout command
 #
-# Recommendation: Install coreutils for reliable timeout support
-#   brew install coreutils
-#
 # Fallback order:
-#   1. gtimeout / timeout
+#   1. timeout / gtimeout
 #   2. perl helper with dedicated process group cleanup
 #   3. shell-based fallback (last resort)
 #
@@ -32,7 +29,7 @@ readonly ANTEATER_TIMEOUT_LOADED=1
 if [[ -z "${AA_TIMEOUT_INITIALIZED:-}" ]]; then
     AA_TIMEOUT_BIN=""
     AA_TIMEOUT_PERL_BIN=""
-    for candidate in gtimeout timeout; do
+    for candidate in timeout gtimeout; do
         if command -v "$candidate" > /dev/null 2>&1; then
             AA_TIMEOUT_BIN="$candidate"
             if [[ "${AA_DEBUG:-0}" == "1" ]]; then
@@ -52,7 +49,7 @@ if [[ -z "${AA_TIMEOUT_INITIALIZED:-}" ]]; then
     # Log warning if no timeout command available
     if [[ -z "$AA_TIMEOUT_BIN" && -z "$AA_TIMEOUT_PERL_BIN" ]] && [[ "${AA_DEBUG:-0}" == "1" ]]; then
         echo "[TIMEOUT] No timeout command found, using shell fallback" >&2
-        echo "[TIMEOUT] Install coreutils for better reliability: brew install coreutils" >&2
+        echo "[TIMEOUT] Install GNU coreutils for better reliability" >&2
     fi
 
     # Export so child processes inherit detected values and skip re-detection.
@@ -68,7 +65,7 @@ fi
 # ============================================================================
 
 # Run command with timeout
-# Uses gtimeout/timeout if available, falls back to shell-based implementation
+# Uses timeout/gtimeout if available, falls back to shell-based implementation
 #
 # Args:
 #   $1 - duration in seconds (0 or invalid = no timeout)
@@ -81,7 +78,7 @@ fi
 #   AA_DEBUG - Set to 1 to enable debug logging to stderr
 #
 # Implementation notes:
-#   - Prefers gtimeout (coreutils) or timeout for reliability
+#   - Prefers timeout / gtimeout (coreutils) for reliability
 #   - Shell fallback uses SIGTERM → SIGKILL escalation
 #   - Attempts process group cleanup to handle child processes
 #   - Returns exit code 124 on timeout (standard timeout exit code)
@@ -93,7 +90,7 @@ fi
 #   - Nested children: SIGKILL may not reach all descendants
 #   - No process group: Cannot guarantee cleanup of detached children
 #
-# For mission-critical timeouts, install coreutils.
+# For mission-critical timeouts, install GNU coreutils.
 run_with_timeout() {
     local duration="${1:-0}"
     shift || true

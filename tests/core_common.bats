@@ -21,7 +21,7 @@ teardown_file() {
 }
 
 setup() {
-    rm -rf "$HOME/.config"
+    rm -rf "$HOME/.config" "$HOME/.local" "$HOME/.cache"
     mkdir -p "$HOME"
 }
 
@@ -30,11 +30,8 @@ setup() {
     [ "$result" = "|/-\\" ]
 }
 
-@test "detect_architecture maps current CPU to friendly label" {
-    expected="Intel"
-    if [[ "$(uname -m)" == "arm64" ]]; then
-        expected="Apple Silicon"
-    fi
+@test "detect_architecture returns the uname -m value" {
+    expected="$(uname -m 2>/dev/null || echo unknown)"
     result="$(HOME="$HOME" bash --noprofile --norc -c "source '$PROJECT_ROOT/lib/core/common.sh'; detect_architecture")"
     [ "$result" = "$expected" ]
 }
@@ -68,7 +65,7 @@ EOF
     stdout_output="$(HOME="$HOME" bash --noprofile --norc -c "source '$PROJECT_ROOT/lib/core/common.sh'; log_info '$message'")"
     [[ "$stdout_output" == *"$message"* ]]
 
-    local log_file="$HOME/Library/Logs/anteater/anteater.log"
+    local log_file="$HOME/.local/state/anteater/logs/anteater.log"
     [[ -f "$log_file" ]]
     grep -q "INFO: $message" "$log_file"
 }
@@ -82,7 +79,7 @@ EOF
     [[ -s "$stderr_file" ]]
     grep -q "$message" "$stderr_file"
 
-    local log_file="$HOME/Library/Logs/anteater/anteater.log"
+    local log_file="$HOME/.local/state/anteater/logs/anteater.log"
     [[ -f "$log_file" ]]
     grep -q "ERROR: $message" "$log_file"
 }
@@ -91,30 +88,22 @@ EOF
     run env HOME="$HOME" PROJECT_ROOT="$PROJECT_ROOT" bash --noprofile --norc <<'EOF'
 set -euo pipefail
 source "$PROJECT_ROOT/lib/core/common.sh"
-rm -rf "$HOME/Library/Logs/anteater"
+rm -rf "$HOME/.local/state/anteater"
 log_operation "clean" "REMOVED" "/tmp/example" "1KB"
 EOF
     [ "$status" -eq 0 ]
 
-    local oplog="$HOME/Library/Logs/anteater/operations.log"
+    local oplog="$HOME/.local/state/anteater/logs/operations.log"
     [[ -f "$oplog" ]]
     grep -Fq "[clean] REMOVED /tmp/example (1KB)" "$oplog"
 }
 
-@test "should_protect_path protects Anteater runtime logs" {
-    result="$(
-        HOME="$HOME" PROJECT_ROOT="$PROJECT_ROOT" bash --noprofile --norc -c \
-            'source "$PROJECT_ROOT/lib/core/common.sh"; should_protect_path "$HOME/Library/Logs/anteater/operations.log" && echo protected || echo not-protected'
-    )"
-    [ "$result" = "protected" ]
-}
-
 @test "rotate_log_once only checks log size once per session" {
-    local log_file="$HOME/Library/Logs/anteater/anteater.log"
+    local log_file="$HOME/.local/state/anteater/logs/anteater.log"
     mkdir -p "$(dirname "$log_file")"
     dd if=/dev/zero of="$log_file" bs=1024 count=1100 2> /dev/null
 
-    HOME="$HOME" bash --noprofile --norc -c "source '$PROJECT_ROOT/lib/core/common.sh'"
+    env -u ANTEATER_LOG_ROTATED HOME="$HOME" bash --noprofile --norc -c "source '$PROJECT_ROOT/lib/core/common.sh'"
     [[ -f "${log_file}.old" ]]
 
     result=$(HOME="$HOME" ANTEATER_LOG_ROTATED=1 bash --noprofile --norc -c "source '$PROJECT_ROOT/lib/core/common.sh'; echo \$ANTEATER_LOG_ROTATED")
@@ -174,72 +163,6 @@ EOF
     rm -f "$HOME/temp_file_path.txt" "$HOME/temp_dir_path.txt"
 }
 
-
-@test "should_protect_data protects system and critical apps" {
-    result=$(HOME="$HOME" bash --noprofile --norc -c "source '$PROJECT_ROOT/lib/core/common.sh'; should_protect_data 'com.apple.Safari' && echo 'protected' || echo 'not-protected'")
-    [ "$result" = "protected" ]
-
-    result=$(HOME="$HOME" bash --noprofile --norc -c "source '$PROJECT_ROOT/lib/core/common.sh'; should_protect_data 'com.clash.app' && echo 'protected' || echo 'not-protected'")
-    [ "$result" = "protected" ]
-
-    result=$(HOME="$HOME" bash --noprofile --norc -c "source '$PROJECT_ROOT/lib/core/common.sh'; should_protect_data 'io.github.clash-verge-rev.clash-verge-rev' && echo 'protected' || echo 'not-protected'")
-    [ "$result" = "protected" ]
-
-    result=$(HOME="$HOME" bash --noprofile --norc -c "source '$PROJECT_ROOT/lib/core/common.sh'; should_protect_data 'com.example.RegularApp' && echo 'protected' || echo 'not-protected'")
-    [ "$result" = "not-protected" ]
-}
-
-# Regression: CUPS prefs have a bundle-ID-style name but no parent .app,
-# so the orphan sweep deleted them and users lost their default printer
-# and recent-printer list. See #731.
-@test "should_protect_data protects CUPS printing prefs (#731)" {
-    result=$(HOME="$HOME" bash --noprofile --norc -c "source '$PROJECT_ROOT/lib/core/common.sh'; should_protect_data 'org.cups.PrintingPrefs' && echo 'protected' || echo 'not-protected'")
-    [ "$result" = "protected" ]
-
-    result=$(HOME="$HOME" bash --noprofile --norc -c "source '$PROJECT_ROOT/lib/core/common.sh'; should_protect_data 'org.cups.printers' && echo 'protected' || echo 'not-protected'")
-    [ "$result" = "protected" ]
-}
-
-@test "input methods are protected during cleanup but allowed for uninstall" {
-    result=$(HOME="$HOME" bash --noprofile --norc -c "source '$PROJECT_ROOT/lib/core/common.sh'; should_protect_data 'com.tencent.inputmethod.QQInput' && echo 'protected' || echo 'not-protected'")
-    [ "$result" = "protected" ]
-
-    result=$(HOME="$HOME" bash --noprofile --norc -c "source '$PROJECT_ROOT/lib/core/common.sh'; should_protect_data 'com.sogou.inputmethod.pinyin' && echo 'protected' || echo 'not-protected'")
-    [ "$result" = "protected" ]
-
-    result=$(HOME="$HOME" bash --noprofile --norc -c "source '$PROJECT_ROOT/lib/core/common.sh'; should_protect_from_uninstall 'com.tencent.inputmethod.QQInput' && echo 'protected' || echo 'not-protected'")
-    [ "$result" = "not-protected" ]
-
-    result=$(HOME="$HOME" bash --noprofile --norc -c "source '$PROJECT_ROOT/lib/core/common.sh'; should_protect_from_uninstall 'com.apple.inputmethod.SCIM' && echo 'protected' || echo 'not-protected'")
-    [ "$result" = "protected" ]
-}
-
-@test "Apple apps from App Store can be uninstalled (Issue #386)" {
-    # Xcode should NOT be protected from uninstall
-    result=$(HOME="$HOME" bash --noprofile --norc -c "source '$PROJECT_ROOT/lib/core/common.sh'; should_protect_from_uninstall 'com.apple.dt.Xcode' && echo 'protected' || echo 'not-protected'")
-    [ "$result" = "not-protected" ]
-
-    # Final Cut Pro should NOT be protected from uninstall
-    result=$(HOME="$HOME" bash --noprofile --norc -c "source '$PROJECT_ROOT/lib/core/common.sh'; should_protect_from_uninstall 'com.apple.FinalCutPro' && echo 'protected' || echo 'not-protected'")
-    [ "$result" = "not-protected" ]
-
-    # GarageBand should NOT be protected from uninstall
-    result=$(HOME="$HOME" bash --noprofile --norc -c "source '$PROJECT_ROOT/lib/core/common.sh'; should_protect_from_uninstall 'com.apple.GarageBand' && echo 'protected' || echo 'not-protected'")
-    [ "$result" = "not-protected" ]
-
-    # iWork apps should NOT be protected from uninstall
-    result=$(HOME="$HOME" bash --noprofile --norc -c "source '$PROJECT_ROOT/lib/core/common.sh'; should_protect_from_uninstall 'com.apple.iWork.Pages' && echo 'protected' || echo 'not-protected'")
-    [ "$result" = "not-protected" ]
-
-    # But Safari (system app) should still be protected
-    result=$(HOME="$HOME" bash --noprofile --norc -c "source '$PROJECT_ROOT/lib/core/common.sh'; should_protect_from_uninstall 'com.apple.Safari' && echo 'protected' || echo 'not-protected'")
-    [ "$result" = "protected" ]
-
-    # And Finder should still be protected
-    result=$(HOME="$HOME" bash --noprofile --norc -c "source '$PROJECT_ROOT/lib/core/common.sh'; should_protect_from_uninstall 'com.apple.finder' && echo 'protected' || echo 'not-protected'")
-    [ "$result" = "protected" ]
-}
-
 @test "print_summary_block formats output correctly" {
     result=$(HOME="$HOME" bash --noprofile --norc -c "source '$PROJECT_ROOT/lib/core/common.sh'; print_summary_block 'success' 'Test Summary' 'Detail 1' 'Detail 2'")
     [[ "$result" == *"Test Summary"* ]]
@@ -260,6 +183,10 @@ EOF
 }
 
 @test "start_inline_spinner ignores PATH-provided sleep in TTY mode" {
+    if ! command -v script > /dev/null 2>&1; then
+        skip "script binary not available"
+    fi
+
     local fake_bin="$HOME/fake-bin"
     local marker="$HOME/fake-sleep.marker"
 
@@ -271,10 +198,17 @@ exec /bin/sleep "\$@"
 EOF
     chmod +x "$fake_bin/sleep"
 
-    PATH="$fake_bin:$PATH" PROJECT_ROOT="$PROJECT_ROOT" HOME="$HOME" \
-        /usr/bin/script -q /dev/null /bin/bash --noprofile --norc -c \
-        "source \"\$PROJECT_ROOT/lib/core/common.sh\"; start_inline_spinner \"Testing...\"; /bin/sleep 0.15; stop_inline_spinner" \
-        > /dev/null 2>&1
+    local cmd="source \"$PROJECT_ROOT/lib/core/common.sh\"; start_inline_spinner \"Testing...\"; /bin/sleep 0.15; stop_inline_spinner"
+
+    if script --version 2>&1 | grep -qi util-linux; then
+        PATH="$fake_bin:$PATH" \
+            /usr/bin/script -q -c "/bin/bash --noprofile --norc -c '$cmd'" /dev/null \
+            > /dev/null 2>&1
+    else
+        PATH="$fake_bin:$PATH" \
+            /usr/bin/script -q /dev/null /bin/bash --noprofile --norc -c "$cmd" \
+            > /dev/null 2>&1
+    fi
 
     [ ! -f "$marker" ]
 }
