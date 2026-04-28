@@ -77,7 +77,7 @@ jobs:
       - name: Install nfpm
         run: |
           go install github.com/goreleaser/nfpm/v2/cmd/nfpm@latest
-          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+          echo "NFPM_BIN=$(go env GOPATH)/bin/nfpm" >> "$GITHUB_ENV"
 
       - name: Build packages
         run: |
@@ -86,7 +86,7 @@ jobs:
             NFPM_ARCH="${{ matrix.goarch }}" \
             VERSION="${GITHUB_REF_NAME#V}" \
             GOOS=linux GOARCH=${{ matrix.goarch }} \
-            nfpm package --config packaging/nfpm.yaml --packager "$FORMAT" --target dist/packages/
+            "$NFPM_BIN" package --config packaging/nfpm.yaml --packager "$FORMAT" --target dist/packages/
           done
 
       - name: Upload package artifacts
