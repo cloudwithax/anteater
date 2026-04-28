@@ -17,8 +17,8 @@ trap cleanup_temp_files EXIT INT TERM
 # Make $VERSION discoverable for the report (the main entrypoint exports it,
 # but bin/status.sh may be invoked standalone).
 if [[ -z "${VERSION:-}" && -f "$SCRIPT_DIR/../anteater" ]]; then
-    VERSION=$(grep '^VERSION=' "$SCRIPT_DIR/../anteater" | head -1 \
-        | sed 's/VERSION="\(.*\)"/\1/')
+    VERSION=$(grep '^VERSION=' "$SCRIPT_DIR/../anteater" | head -1 |
+        sed 's/VERSION="\(.*\)"/\1/')
 fi
 
 show_help() {

@@ -117,8 +117,8 @@ status_memory_kib() {
         local st="" sused=""
         if command -v swapctl > /dev/null 2>&1; then
             local st_blocks sused_blocks
-            read -r st_blocks sused_blocks _ < <(swapctl -s 2> /dev/null \
-                | awk '/total:/ {print $2, $4}')
+            read -r st_blocks sused_blocks _ < <(swapctl -s 2> /dev/null |
+                awk '/total:/ {print $2, $4}')
             if [[ "$st_blocks" =~ ^[0-9]+$ ]]; then st=$((st_blocks / 2)); fi
             if [[ "$sused_blocks" =~ ^[0-9]+$ ]]; then sused=$((sused_blocks / 2)); fi
         fi
@@ -184,8 +184,8 @@ status_render_disks() {
         local fs blocks used avail capacity mount
         read -r fs blocks used avail capacity mount <<< "$row"
         case "$mount" in
-            /proc | /proc/* | /sys | /sys/* | /dev | /dev/* | /run | /run/* \
-                | /tmp/snap.* | /var/lib/docker/* | /var/lib/snapd/*)
+            /proc | /proc/* | /sys | /sys/* | /dev | /dev/* | /run | /run/* | \
+                /tmp/snap.* | /var/lib/docker/* | /var/lib/snapd/*)
                 continue
                 ;;
         esac

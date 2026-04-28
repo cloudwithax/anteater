@@ -68,4 +68,3 @@ anteater_identity_in_list() {
     done
     return 1
 }
-
