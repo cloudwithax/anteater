@@ -77,15 +77,15 @@ jobs:
       - name: Install nfpm
         run: |
           go install github.com/goreleaser/nfpm/v2/cmd/nfpm@latest
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
 
       - name: Build packages
         run: |
-          export NFPM_ARCH="${{ matrix.goarch }}"
-          export VERSION="${GITHUB_REF_NAME#V}"
-          export GOOS=linux GOARCH=${{ matrix.goarch }}
-          export PATH="$HOME/go/bin:$PATH"
           mkdir -p dist/packages
           for FORMAT in deb rpm archlinux; do
+            NFPM_ARCH="${{ matrix.goarch }}" \
+            VERSION="${GITHUB_REF_NAME#V}" \
+            GOOS=linux GOARCH=${{ matrix.goarch }} \
             nfpm package --config packaging/nfpm.yaml --packager "$FORMAT" --target dist/packages/
           done
 
