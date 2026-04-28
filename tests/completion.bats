@@ -65,6 +65,8 @@ setup() {
 	[[ "$output" == *"clean"* ]]
 	[[ "$output" == *"purge"* ]]
 	[[ "$output" == *"analyze"* ]]
+	[[ "$output" == *"status"* ]]
+	[[ "$output" == *"optimize"* ]]
 	[[ "$output" == *"completion"* ]]
 	[[ "$output" == *"update"* ]]
 	[[ "$output" == *"remove"* ]]

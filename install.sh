@@ -433,7 +433,8 @@ create_directories() {
         maybe_sudo mkdir -p "$INSTALL_DIR"
     fi
 
-    if ! mkdir -p "$CONFIG_DIR" "$CONFIG_DIR/bin" "$CONFIG_DIR/lib"; then
+    if ! mkdir -p "$CONFIG_DIR" "$CONFIG_DIR/bin" "$CONFIG_DIR/lib" \
+        "$CONFIG_DIR/cmd" "$CONFIG_DIR/internal"; then
         log_error "Failed to create config directory: $CONFIG_DIR"
         exit 1
     fi
@@ -512,6 +513,28 @@ install_files() {
             fi
         fi
     fi
+
+    # Go sources required by bin/analyze.sh to build aa-analyze on demand.
+    local go_dir
+    for go_dir in cmd internal; do
+        if [[ -d "$SOURCE_DIR/$go_dir" ]]; then
+            local source_go_abs="$(cd "$SOURCE_DIR/$go_dir" && pwd)"
+            local config_go_abs="$(cd "$CONFIG_DIR/$go_dir" && pwd 2> /dev/null || echo "")"
+            if [[ -n "$config_go_abs" && "$source_go_abs" == "$config_go_abs" ]]; then
+                continue
+            fi
+            local -a go_files=("$SOURCE_DIR/$go_dir"/*)
+            if [[ ${#go_files[@]} -gt 0 ]]; then
+                cp -r "${go_files[@]}" "$CONFIG_DIR/$go_dir/"
+            fi
+        fi
+    done
+    local go_meta
+    for go_meta in go.mod go.sum; do
+        if [[ -f "$SOURCE_DIR/$go_meta" && "$config_dir_abs" != "$source_dir_abs" ]]; then
+            cp -f "$SOURCE_DIR/$go_meta" "$CONFIG_DIR/"
+        fi
+    done
 
     if [[ "$config_dir_abs" != "$source_dir_abs" ]]; then
         for file in README.md LICENSE install.sh; do
