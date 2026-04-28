@@ -1,0 +1,101 @@
+name: anteater
+arch: ${NFPM_ARCH}
+platform: linux
+version: ${VERSION}
+section: utils
+priority: optional
+maintainer: cloudwithax <cloudwithax@github>
+description: Deep clean your *nix system
+homepage: https://github.com/cloudwithax/anteater
+license: MIT
+depends:
+  - bash
+  - curl
+
+contents:
+  - src: ./packaging/anteater.pkg
+    dst: /usr/bin/anteater
+    file_info:
+      mode: 0755
+
+  - src: ./packaging/aa.pkg
+    dst: /usr/bin/aa
+    type: symlink
+    file_info:
+      mode: 0755
+
+  - src: ./dist/aa-analyze-${GOOS}-${GOARCH}
+    dst: /usr/lib/anteater/aa-analyze
+    expand: true
+    file_info:
+      mode: 0755
+
+  - src: ./lib/core/*.sh
+    dst: /usr/lib/anteater/lib/core/
+    file_info:
+      mode: 0644
+
+  - src: ./lib/clean/*.sh
+    dst: /usr/lib/anteater/lib/clean/
+    file_info:
+      mode: 0644
+
+  - src: ./lib/manage/*.sh
+    dst: /usr/lib/anteater/lib/manage/
+    file_info:
+      mode: 0644
+
+  - src: ./lib/optimize/*.sh
+    dst: /usr/lib/anteater/lib/optimize/
+    file_info:
+      mode: 0644
+
+  - src: ./lib/status/*.sh
+    dst: /usr/lib/anteater/lib/status/
+    file_info:
+      mode: 0644
+
+  - src: ./lib/ui/*.sh
+    dst: /usr/lib/anteater/lib/ui/
+    file_info:
+      mode: 0644
+
+  - src: ./bin/*.sh
+    dst: /usr/lib/anteater/bin/
+    file_info:
+      mode: 0755
+
+  - src: ./cmd/aa-analyze/*.go
+    dst: /usr/lib/anteater/cmd/aa-analyze/
+    file_info:
+      mode: 0644
+
+  - src: ./internal/analyze/*.go
+    dst: /usr/lib/anteater/internal/analyze/
+    file_info:
+      mode: 0644
+
+  - src: ./internal/platform/*.go
+    dst: /usr/lib/anteater/internal/platform/
+    file_info:
+      mode: 0644
+
+  - src: ./go.mod
+    dst: /usr/lib/anteater/go.mod
+    file_info:
+      mode: 0644
+
+  - src: ./go.sum
+    dst: /usr/lib/anteater/go.sum
+    file_info:
+      mode: 0644
+
+  - src: ./README.md
+    dst: /usr/share/doc/anteater/README.md
+    file_info:
+      mode: 0644
+
+  - src: ./LICENSE
+    dst: /usr/share/doc/anteater/LICENSE
+    file_info:
+      mode: 0644

@@ -49,9 +49,56 @@ jobs:
           path: dist/aa-analyze-${{ matrix.goos }}-${{ matrix.goarch }}
           retention-days: 1
 
+  packages:
+    name: Build system packages
+    needs: build
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        goarch: [amd64, arm64]
+    env:
+      GOOS: linux
+      GOARCH: ${{ matrix.goarch }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v4
+
+      - name: Set up Go
+        uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v5
+        with:
+          go-version-file: go.mod
+
+      - name: Download aa-analyze binary
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: aa-analyze-${{ env.GOOS }}-${{ matrix.goarch }}
+          path: dist/
+
+      - name: Install nfpm
+        run: |
+          go install github.com/goreleaser/nfpm/v2/cmd/nfpm@latest
+
+      - name: Build packages
+        run: |
+          export NFPM_ARCH="${{ matrix.goarch }}"
+          export VERSION="${GITHUB_REF_NAME#V}"
+          export GOOS=linux GOARCH=${{ matrix.goarch }}
+          export PATH="$HOME/go/bin:$PATH"
+          mkdir -p dist/packages
+          for FORMAT in deb rpm archlinux; do
+            nfpm package --config packaging/nfpm.yaml --packager "$FORMAT" --target dist/packages/
+          done
+
+      - name: Upload package artifacts
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: packages-${{ matrix.goarch }}
+          path: dist/packages/*
+          retention-days: 1
+
   release:
     name: Publish Release
-    needs: build
+    needs: [build, packages]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -69,11 +116,18 @@ jobs:
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
-      - name: Download all build artifacts
+      - name: Download aa-analyze artifacts
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           path: dist
           pattern: aa-analyze-*
+          merge-multiple: true
+
+      - name: Download package artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          path: dist/packages
+          pattern: packages-*
           merge-multiple: true
 
       - name: Stage release files
@@ -81,6 +135,7 @@ jobs:
           set -euo pipefail
           mkdir -p release
           cp dist/aa-analyze-* release/
+          cp dist/packages/*.deb dist/packages/*.rpm dist/packages/*.pkg.tar.zst release/ 2>/dev/null || true
 
           # Source tarball: bash + Go sources, excluding caches/test fixtures.
           TAG="${{ steps.tag_version.outputs.tag }}"
@@ -89,7 +144,7 @@ jobs:
             --exclude='.git' --exclude='./release' --exclude='./dist' \
             --exclude='tests/tmp-*' \
             anteater aa install.sh README.md LICENSE Makefile \
-            go.mod go.sum bin lib cmd internal scripts
+            go.mod go.sum bin lib cmd internal scripts packaging
 
           ls -lh release/
 
@@ -97,6 +152,7 @@ jobs:
         run: |
           set -euo pipefail
           cd release
+          sha256sum aa-analyze-* anteater-*.tar.gz *.deb *.rpm *.pkg.tar.zst > SHA256SUMS 2>/dev/null || \
           sha256sum aa-analyze-* "anteater-${{ steps.tag_version.outputs.tag }}.tar.gz" > SHA256SUMS
           cat SHA256SUMS
 
